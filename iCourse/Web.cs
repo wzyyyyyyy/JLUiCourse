@@ -21,6 +21,7 @@ namespace iCourse
         private string password;
         private string uuid;
         private string captcha;
+        private string login_response;
 
         public Web(string username, string password)
         {
@@ -67,7 +68,7 @@ namespace iCourse
         }
 
         //code msg
-        public (int,string) Login()
+        public (int,string,string) Login()
         {
             client = new HttpClient();
 
@@ -97,12 +98,15 @@ namespace iCourse
 
             int code = json["code"].ToObject<int>();
             string msg = json["msg"].ToString();
+
             if (json["msg"].ToString() == "验证码错误")
             {
-                (code,msg) = Login();
+                (code, msg, response) = Login();
             }
 
-            return (code, msg);
+            login_response = response;
+
+            return (code, msg,response);
         }
 
         private string postLogin()
@@ -124,5 +128,7 @@ namespace iCourse
             captcha = CaptchaWindow.Captcha;
             return CaptchaWindow.Captcha;
         }
+
+        public List<>
     }
 }
