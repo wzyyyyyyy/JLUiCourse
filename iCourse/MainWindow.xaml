@@ -15,8 +15,8 @@
             <ColumnDefinition Width="11*"/>
             <ColumnDefinition Width="149*"/>
         </Grid.ColumnDefinitions>
-        <TextBox x:Name="username" Grid.Column="1" HorizontalAlignment="Left" Margin="0,45,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="120" Background="#FF2E2E2E" TextChanged="TextBox_TextChanged" Height="25" RenderTransformOrigin="0.625,3.003" Grid.Row="1"/>
-        <TextBox x:Name="password" Grid.Column="1" HorizontalAlignment="Left" Grid.Row="1" TextWrapping="Wrap" VerticalAlignment="Top" Width="120" Background="#FF2E2E2E" TextChanged="TextBox_TextChanged" Height="25" Margin="0,136,0,0"/>
+        <TextBox x:Name="username" Grid.Column="1" HorizontalAlignment="Left" Margin="0,45,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="120" Background="#FF2E2E2E" TextChanged="TextBox_TextChanged" Height="25" RenderTransformOrigin="0.625,3.003" Grid.Row="1" Foreground="White"/>
+        <TextBox x:Name="password" Grid.Column="1" HorizontalAlignment="Left" Grid.Row="1" TextWrapping="Wrap" VerticalAlignment="Top" Width="120" Background="#FF2E2E2E" TextChanged="TextBox_TextChanged" Height="25" Margin="0,136,0,0" Foreground="White"/>
         <Button x:Name="LoginButton" Grid.Column="1" Content="登录" HorizontalAlignment="Left" Height="35" Margin="0,205,0,0" Grid.Row="1" VerticalAlignment="Top" Width="120" Background="#FF2E2E2E" FontSize="14" Foreground="White" Click="LoginButton_Click"/>
         <TextBlock Grid.Column="1" HorizontalAlignment="Left" Height="15" Margin="0,25,0,0" Grid.Row="1" TextWrapping="Wrap" VerticalAlignment="Top" Width="110" Foreground="White" FontSize="14"><Run Language="zh-cn" Text="账号"/></TextBlock>
         <TextBlock Grid.Column="1" HorizontalAlignment="Left" Height="15" Margin="0,115,0,0" Grid.Row="1" TextWrapping="Wrap" VerticalAlignment="Top" Width="110" Foreground="White" Text="密码" FontSize="14"/>
