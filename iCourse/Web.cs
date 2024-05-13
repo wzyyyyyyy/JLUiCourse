@@ -80,7 +80,6 @@ namespace iCourse
             getAESKeyAsync().Wait();
             byte[] encryptedBytes = EncryptWithAES(password, AESKey);
             password = Convert.ToBase64String(encryptedBytes);
-
             client.DefaultRequestHeaders.Add("Origin", "https://icourses.jlu.edu.cn");
             client.DefaultRequestHeaders.Add("Referer", "https://icourses.jlu.edu.cn/xsxk/profile/index.html");
 
@@ -128,7 +127,5 @@ namespace iCourse
             captcha = CaptchaWindow.Captcha;
             return CaptchaWindow.Captcha;
         }
-
-        public List<>
     }
 }

@@ -67,7 +67,7 @@ namespace iCourse
         private void WriteLine(string msg)
         {
             var time = DateTime.Now.ToString("HH:mm:ss");
-            ConsoleBox.Text += "["+time+"] : "+msg + "\n";
+            ConsoleBox.Text += "["+time+"] : " + msg + "\n";
         }
 
         private void TextBox_TextChanged(object sender, TextChangedEventArgs e)
