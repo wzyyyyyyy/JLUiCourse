@@ -21,6 +21,7 @@ namespace iCourse
     public partial class CaptchaWindow : Window
     {
         public static string Captcha { get; private set; }
+
         public CaptchaWindow(string base64Image)
         {
             InitializeComponent();
