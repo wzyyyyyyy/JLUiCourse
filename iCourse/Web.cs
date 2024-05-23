@@ -1,18 +1,14 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Net.Http;
-using System.Reflection.Metadata.Ecma335;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Windows;
-using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
 namespace iCourse
 {
-    internal class Web
+    public class Web
     {
         private HttpClient client;
 
@@ -21,7 +17,8 @@ namespace iCourse
         private string password;
         private string uuid;
         private string captcha;
-        private string login_response;
+        private string token;
+        private JObject login_response;
 
         public Web(string username, string password)
         {
@@ -68,7 +65,7 @@ namespace iCourse
         }
 
         //code msg
-        public (int,string,string) Login()
+        public (int, string) Login()
         {
             client = new HttpClient();
 
@@ -77,12 +74,14 @@ namespace iCourse
             client.DefaultRequestHeaders.Add("Host", "icourses.jlu.edu.cn");
             client.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.5060.114 Safari/537.36 Edg/103.0.1264.62");
 
+            //获取AESKey
             getAESKeyAsync().Wait();
             byte[] encryptedBytes = EncryptWithAES(password, AESKey);
             password = Convert.ToBase64String(encryptedBytes);
             client.DefaultRequestHeaders.Add("Origin", "https://icourses.jlu.edu.cn");
             client.DefaultRequestHeaders.Add("Referer", "https://icourses.jlu.edu.cn/xsxk/profile/index.html");
 
+            //获取验证码
             var result = client.PostAsync("xsxk/auth/captcha", null).Result.Content.ReadAsStringAsync().Result;
 
             var json = JObject.Parse(result);
@@ -90,22 +89,36 @@ namespace iCourse
             var captchaImage = json["data"]["captcha"].ToString();
             captchaImage = captchaImage.Substring(captchaImage.IndexOf(",") + 1);
 
-            getCaptcha(captchaImage);
+            this.getCaptcha(captchaImage);
 
+            //登录
             var response = postLogin();
             json = JObject.Parse(response);
+            MessageBox.Show(response);
+            login_response = json;
 
             int code = json["code"].ToObject<int>();
             string msg = json["msg"].ToString();
 
-            if (json["msg"].ToString() == "验证码错误")
+            //验证码错误
+            if (msg == "验证码错误")
             {
-                (code, msg, response) = Login();
+                (code, msg) = Login();
             }
 
-            login_response = response;
+            //登录失败
+            if (code != 200)
+            {
+                return (code, msg);
+            }
 
-            return (code, msg,response);
+            //登录成功
+            if (json.ContainsKey("data"))
+            {
+                token = json["data"]["token"].ToString();
+            }
+
+            return (code, msg);
         }
 
         private string postLogin()
@@ -126,6 +139,32 @@ namespace iCourse
             captchaWindow.ShowDialog();
             captcha = CaptchaWindow.Captcha;
             return CaptchaWindow.Captcha;
+        }
+
+        public JObject getLoginResponse()
+        {
+            return login_response;
+        }
+
+        public List<BatchInfo> getBatchInfo()
+        {
+            var batchInfos = new List<BatchInfo>();
+            login_response["data"]["student"]["electiveBatchList"].ToList().ForEach(batch =>
+            {
+                var batchInfo = new BatchInfo
+                {
+                    batchCode = batch["code"].ToString(),
+                    batchName = batch["name"].ToString(),
+                    beginTime = batch["beginTime"].ToString(),
+                    endTime = batch["endTime"].ToString(),
+                    tacticName = batch["tacticName"].ToString(),
+                    noSelectReason = batch["noSelectReason"].ToString(),
+                    typeName = batch["typeName"].ToString(),
+                    canSelect = batch["canSelect"].ToString() != "0" //你鸡为什么用字符串，逆天
+                };
+                batchInfos.Add(batchInfo);
+            });
+            return batchInfos;
         }
     }
 }

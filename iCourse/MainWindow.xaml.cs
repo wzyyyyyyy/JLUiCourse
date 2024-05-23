@@ -15,6 +15,7 @@ namespace iCourse
 {
     public partial class MainWindow : Window
     {
+        
         static bool isLogged = false;
 
         public MainWindow()
@@ -35,33 +36,39 @@ namespace iCourse
                 return;
             }
             var name = username.Text;
-            var pw = password.Text;
+            var pw = password.Password;
             Web web = new Web(name, pw);
 
-            var (code, msg, response) = web.Login();
+            // 登录
+            var (code, msg) = web.Login();
+            var response = web.getLoginResponse();
 
-            if (code == 200)
-            {
-                WriteLine(msg);
-                isLogged = true;
-
-                var json = JObject.Parse(response);
-                MessageBox.Show(response);
-                var studentName = json["data"]["student"]["XM"].ToString();
-                var studentID = json["data"]["student"]["XH"].ToString();
-                var collage = json["data"]["student"]["YXMC"].ToString();
-
-                WriteLine($"姓名：{studentName}");
-                WriteLine($"学号：{studentID}");
-                WriteLine($"学院：{collage}");
-            }
-            else
+            // 登录失败
+            if (code != 200)
             {
                 WriteLine(msg);
                 WriteLine("登录失败，请检查用户名和密码是否正确。");
                 isLogged = false;
+                return;
             }
 
+            // 登录成功
+            WriteLine(msg);
+            isLogged = true;
+
+            // 获取学生信息
+            var studentName = response["data"]["student"]["XM"].ToString();
+            var studentID = response["data"]["student"]["XH"].ToString();
+            var collage = response["data"]["student"]["YXMC"].ToString();
+
+            WriteLine($"姓名：{studentName}");
+            WriteLine($"学号：{studentID}");
+            WriteLine($"学院：{collage}");
+
+            //显示选课批次
+            var batchInfos = web.getBatchInfo();
+            SelectBatchWindow selectBatchWindow = new SelectBatchWindow(batchInfos);
+            selectBatchWindow.ShowDialog();
         }
 
         private void WriteLine(string msg)
