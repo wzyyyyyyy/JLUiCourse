@@ -6,11 +6,16 @@ using System.Threading.Tasks;
 
 namespace iCourse
 {
-    internal class BatchInfo
+    public class BatchInfo
     {
-        public string BatchID { get; set; }
-        public string BatchName { get; set; }
-        public string BeginTime { get; set; }
-        public string EndTime { get; set; }
+        public string batchCode { get; set; }
+        public string batchName { get; set; }
+        public string beginTime { get; set; }
+        public string endTime { get; set; }
+        public string tacticName { get; set; }
+        public string noSelectReason { get; set; }
+        public string typeName { get; set; }
+        public bool canSelect { get; set; }
+
     }
 }
