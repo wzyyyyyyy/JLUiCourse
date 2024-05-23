@@ -94,7 +94,6 @@ namespace iCourse
             //登录
             var response = postLogin();
             json = JObject.Parse(response);
-            MessageBox.Show(response);
             login_response = json;
 
             int code = json["code"].ToObject<int>();

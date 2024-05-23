@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:iCourse"
         mc:Ignorable="d"
-        Title="验证码" Height="250" Width="260">
+        Title="验证码" Height="250" Width="260" WindowStartupLocation="CenterScreen">
     <Grid Margin="0,0,0,-6" Background="#FF1F1F1F">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="11*"/>
