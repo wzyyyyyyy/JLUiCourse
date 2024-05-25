@@ -63,7 +63,7 @@ namespace iCourse
             WriteLine($"学院：{collage}");
 
             // 显示选课批次
-            var batchInfos = await web.GetBatchInfoAsync();
+            var batchInfos = web.GetBatchInfoAsync();
             SelectBatchWindow selectBatchWindow = new SelectBatchWindow(batchInfos);
             selectBatchWindow.ShowDialog();
         }
