@@ -1,13 +1,6 @@
 ﻿using Polly;
 using Polly.Retry;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Net.Http;
-using System.Net.Http.Headers;
-using System.Text;
-using System.Threading.Tasks;
-using System.Windows;
 
 namespace iCourse
 {
@@ -32,7 +25,7 @@ namespace iCourse
                .Or<HttpRequestException>()
                .WaitAndRetryAsync(retryCount, retryAttempt =>
                {
-                   var waitTime = TimeSpan.FromMilliseconds(Math.Pow(2, retryAttempt)*10);
+                   var waitTime = TimeSpan.FromMilliseconds(Math.Pow(2, retryAttempt) * 10);
                    MainWindow.Instance.WriteLine($"第 {retryAttempt} 次重试，等待时间 {waitTime.TotalSeconds} 秒");
                    return waitTime;
                }, onRetry: (exception, timeSpan, retryAttempt, context) =>
@@ -54,7 +47,7 @@ namespace iCourse
             {
                 _client.DefaultRequestHeaders.Remove("Origin");
             }
-            _client.DefaultRequestHeaders.Add("Origin",origin);
+            _client.DefaultRequestHeaders.Add("Origin", origin);
         }
 
         public void SetReferer(string referer)
@@ -74,7 +67,7 @@ namespace iCourse
 
                 using (var response = await _client.SendAsync(request))
                 {
-                    
+
                     response.EnsureSuccessStatusCode();
                     return await response.Content.ReadAsStringAsync();
                 }
