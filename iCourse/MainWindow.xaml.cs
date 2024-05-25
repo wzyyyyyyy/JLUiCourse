@@ -1,9 +1,4 @@
-﻿using Newtonsoft.Json.Linq;
-using System;
-using System.IO;
-using System.Text;
-using System.Threading.Tasks;
-using System.Windows;
+﻿using System.Windows;
 using System.Windows.Controls;
 
 namespace iCourse
@@ -74,6 +69,7 @@ namespace iCourse
             Dispatcher.Invoke(() =>
             {
                 ConsoleBox.Text += "[" + time + "] : " + msg + "\n";
+                ConsoleScrollViewer.ScrollToEnd();
             });
         }
 
