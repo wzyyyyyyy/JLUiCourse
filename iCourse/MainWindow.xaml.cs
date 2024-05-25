@@ -1,34 +1,31 @@
 ﻿using Newtonsoft.Json.Linq;
+using System;
 using System.IO;
 using System.Text;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
 
 namespace iCourse
 {
     public partial class MainWindow : Window
     {
-        
         static bool isLogged = false;
+
+        public static MainWindow Instance { get; private set; }
 
         public MainWindow()
         {
             InitializeComponent();
+            Instance = this;
         }
 
-        private void LoginButton_Click(object sender, RoutedEventArgs e)
+        private async void LoginButton_Click(object sender, RoutedEventArgs e)
         {
-            Login();
+            await LoginAsync();
         }
 
-        private void Login()
+        private async Task LoginAsync()
         {
             if (isLogged)
             {
@@ -40,8 +37,8 @@ namespace iCourse
             Web web = new Web(name, pw);
 
             // 登录
-            var (code, msg) = web.Login();
-            var response = web.getLoginResponse();
+            var (code, msg) = await web.LoginAsync();
+            var response = web.GetLoginResponse();
 
             // 登录失败
             if (code != 200)
@@ -65,21 +62,23 @@ namespace iCourse
             WriteLine($"学号：{studentID}");
             WriteLine($"学院：{collage}");
 
-            //显示选课批次
-            var batchInfos = web.getBatchInfo();
+            // 显示选课批次
+            var batchInfos = await web.GetBatchInfoAsync();
             SelectBatchWindow selectBatchWindow = new SelectBatchWindow(batchInfos);
             selectBatchWindow.ShowDialog();
         }
 
-        private void WriteLine(string msg)
+        public void WriteLine(string msg)
         {
             var time = DateTime.Now.ToString("HH:mm:ss");
-            ConsoleBox.Text += "["+time+"] : " + msg + "\n";
+            Dispatcher.Invoke(() =>
+            {
+                ConsoleBox.Text += "[" + time + "] : " + msg + "\n";
+            });
         }
 
         private void TextBox_TextChanged(object sender, TextChangedEventArgs e)
         {
-
         }
     }
 }
