@@ -67,7 +67,7 @@ namespace iCourse
         //code msg
         public async Task<(int, string)> LoginAsync()
         {
-            client = new Http(TimeSpan.FromSeconds(2), 3);
+            client = new Http(TimeSpan.FromSeconds(2), 5);
 
             // 获取AESKey
             await GetAESKeyAsync();
@@ -142,12 +142,10 @@ namespace iCourse
             return login_response;
         }
 
-        public async Task<List<BatchInfo>> GetBatchInfoAsync()
+        public List<BatchInfo> GetBatchInfoAsync()
         {
             var batchInfos = new List<BatchInfo>();
-            await Task.Run(() =>
-            {
-                login_response["data"]["student"]["electiveBatchList"].ToList().ForEach(batch =>
+            login_response["data"]["student"]["electiveBatchList"].ToList().ForEach(batch =>
                 {
                     var batchInfo = new BatchInfo
                     {
@@ -162,7 +160,6 @@ namespace iCourse
                     };
                     batchInfos.Add(batchInfo);
                 });
-            });
             return batchInfos;
         }
     }
