@@ -24,7 +24,7 @@
         <TextBlock Grid.Row="1" HorizontalAlignment="Left" Margin="9,59,0,-20" Foreground="White" FontSize="14" Grid.RowSpan="3" Width="32" Grid.Column="1">
             账号:
         </TextBlock>
-        <TextBox x:Name="username" Grid.Row="1" Margin="10,0,15,0" VerticalAlignment="Center" Background="#2E2E2E" Foreground="White" FontSize="14" Height="25" TextChanged="TextBox_TextChanged" Grid.Column="1"/>
+        <TextBox x:Name="username" Grid.Row="1" Margin="10,0,15,0" VerticalAlignment="Center" Background="#2E2E2E" Foreground="White" FontSize="14" Height="25" Grid.Column="1"/>
 
         <!-- Password Label and PasswordBox -->
         <TextBlock Grid.Row="1" HorizontalAlignment="Left" Margin="10,134,0,39" Foreground="White" FontSize="14" Width="31" Grid.Column="1">

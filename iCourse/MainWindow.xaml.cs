@@ -72,9 +72,5 @@ namespace iCourse
                 ConsoleScrollViewer.ScrollToEnd();
             });
         }
-
-        private void TextBox_TextChanged(object sender, TextChangedEventArgs e)
-        {
-        }
     }
 }
