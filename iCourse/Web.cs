@@ -24,6 +24,78 @@ namespace iCourse
             this.password = password;
         }
 
+        //code,msg
+        public async Task<(int, string)> LoginAsync()
+        {
+            client = new Http(TimeSpan.FromSeconds(5));
+
+            // 获取AESKey
+            await GetAESKeyAsync();
+            byte[] encryptedBytes = EncryptWithAES(password, AESKey);
+            password = Convert.ToBase64String(encryptedBytes);
+            client.SetOrigin("https://icourses.jlu.edu.cn");
+            client.SetReferer("https://icourses.jlu.edu.cn/xsxk/profile/index.html");
+
+            // 获取验证码
+            var result = await client.HttpPostAsync("xsxk/auth/captcha", null);
+            var json = JObject.Parse(result);
+            uuid = json["data"]["uuid"].ToString();
+            var captchaImage = json["data"]["captcha"].ToString();
+            captchaImage = captchaImage.Substring(captchaImage.IndexOf(",") + 1);
+
+            await GetCaptchaAsync(captchaImage);
+
+            // 登录
+            var response = await PostLoginAsync();
+            json = JObject.Parse(response);
+            login_response = json;
+
+            int code = json["code"].ToObject<int>();
+            string msg = json["msg"].ToString();
+
+            // 验证码错误
+            if (msg == "验证码错误")
+            {
+                MainWindow.Instance.WriteLine(msg);
+                (code, msg) = await LoginAsync();
+            }
+
+            // 登录失败
+            if (code != 200)
+            {
+                return (code, msg);
+            }
+
+            // 登录成功
+            if (json.ContainsKey("data"))
+            {
+                token = json["data"]["token"].ToString();
+            }
+
+            return (code, msg);
+        }
+
+        public List<BatchInfo> GetBatchInfoAsync()
+        {
+            var batchInfos = new List<BatchInfo>();
+            login_response["data"]["student"]["electiveBatchList"].ToList().ForEach(batch =>
+            {
+                var batchInfo = new BatchInfo
+                {
+                    batchCode = batch["code"].ToString(),
+                    batchName = batch["name"].ToString(),
+                    beginTime = batch["beginTime"].ToString(),
+                    endTime = batch["endTime"].ToString(),
+                    tacticName = batch["tacticName"].ToString(),
+                    noSelectReason = batch["noSelectReason"].ToString(),
+                    typeName = batch["typeName"].ToString(),
+                    canSelect = batch["canSelect"].ToString() != "0" //你鸡为什么用字符串，逆天
+                };
+                batchInfos.Add(batchInfo);
+            });
+            return batchInfos;
+        }
+
         private byte[] EncryptWithAES(string plainText, string aesKey)
         {
             byte[] keyBytes = Encoding.UTF8.GetBytes(aesKey);
@@ -60,56 +132,6 @@ namespace iCourse
             }
         }
 
-        //code msg
-        public async Task<(int, string)> LoginAsync()
-        {
-            client = new Http(TimeSpan.FromSeconds(2), 5);
-
-            // 获取AESKey
-            await GetAESKeyAsync();
-            byte[] encryptedBytes = EncryptWithAES(password, AESKey);
-            password = Convert.ToBase64String(encryptedBytes);
-            client.SetOrigin("https://icourses.jlu.edu.cn");
-            client.SetReferer("https://icourses.jlu.edu.cn/xsxk/profile/index.html");
-
-            // 获取验证码
-            var result = await client.HttpPostAsync("xsxk/auth/captcha", null);
-            var json = JObject.Parse(result);
-            uuid = json["data"]["uuid"].ToString();
-            var captchaImage = json["data"]["captcha"].ToString();
-            captchaImage = captchaImage.Substring(captchaImage.IndexOf(",") + 1);
-
-            await GetCaptchaAsync(captchaImage);
-
-            // 登录
-            var response = await PostLoginAsync();
-            json = JObject.Parse(response);
-            login_response = json;
-
-            int code = json["code"].ToObject<int>();
-            string msg = json["msg"].ToString();
-
-            // 验证码错误
-            if (msg == "验证码错误")
-            {
-                (code, msg) = await LoginAsync();
-            }
-
-            // 登录失败
-            if (code != 200)
-            {
-                return (code, msg);
-            }
-
-            // 登录成功
-            if (json.ContainsKey("data"))
-            {
-                token = json["data"]["token"].ToString();
-            }
-
-            return (code, msg);
-        }
-
         private async Task<string> PostLoginAsync()
         {
             var response = await client.HttpPostAsync("xsxk/auth/login", new FormUrlEncodedContent(new Dictionary<string, string>
@@ -136,27 +158,6 @@ namespace iCourse
         public JObject GetLoginResponse()
         {
             return login_response;
-        }
-
-        public List<BatchInfo> GetBatchInfoAsync()
-        {
-            var batchInfos = new List<BatchInfo>();
-            login_response["data"]["student"]["electiveBatchList"].ToList().ForEach(batch =>
-                {
-                    var batchInfo = new BatchInfo
-                    {
-                        batchCode = batch["code"].ToString(),
-                        batchName = batch["name"].ToString(),
-                        beginTime = batch["beginTime"].ToString(),
-                        endTime = batch["endTime"].ToString(),
-                        tacticName = batch["tacticName"].ToString(),
-                        noSelectReason = batch["noSelectReason"].ToString(),
-                        typeName = batch["typeName"].ToString(),
-                        canSelect = batch["canSelect"].ToString() != "0" //你鸡为什么用字符串，逆天
-                    };
-                    batchInfos.Add(batchInfo);
-                });
-            return batchInfos;
         }
     }
 }

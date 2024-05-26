@@ -9,7 +9,7 @@ namespace iCourse
         private readonly HttpClient _client;
         private readonly AsyncRetryPolicy _retryPolicy;
 
-        public Http(TimeSpan timeout, int retryCount)
+        public Http(TimeSpan timeout)
         {
             _client = new HttpClient
             {
@@ -21,24 +21,26 @@ namespace iCourse
             _client.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.5060.114 Safari/537.36 Edg/103.0.1264.62");
 
             _retryPolicy = Policy
-               .Handle<TaskCanceledException>()
-               .Or<HttpRequestException>()
-               .WaitAndRetryAsync(retryCount, retryAttempt =>
-               {
-                   var waitTime = TimeSpan.FromMilliseconds(Math.Pow(2, retryAttempt) * 10);
-                   MainWindow.Instance.WriteLine($"第 {retryAttempt} 次重试，等待时间 {waitTime.TotalSeconds} 秒");
-                   return waitTime;
-               }, onRetry: (exception, timeSpan, retryAttempt, context) =>
-               {
-                   if (exception is TaskCanceledException)
-                   {
-                       MainWindow.Instance.WriteLine($"第 {retryAttempt} 次重试超时，等待 {timeSpan.TotalSeconds} 秒后重试。");
-                   }
-                   else
-                   {
-                       MainWindow.Instance.WriteLine($"发生异常：{exception.Message}，等待 {timeSpan.TotalSeconds} 秒后重试。");
-                   }
-               });
+          .Handle<TaskCanceledException>()
+          .Or<HttpRequestException>()
+          .WaitAndRetryForeverAsync(
+              retryAttempt =>
+              {
+                  var waitTime = TimeSpan.FromMilliseconds(Math.Pow(2, Math.Min(retryAttempt, 8))); // 上限为256ms
+                  MainWindow.Instance.WriteLine($"重试第 {retryAttempt} 次，等待时间 {waitTime.TotalSeconds} 秒");
+                  return waitTime;
+              },
+              onRetry: (exception, timeSpan) =>
+              {
+                  if (exception is TaskCanceledException)
+                  {
+                      MainWindow.Instance.WriteLine($"重试超时，等待 {timeSpan.TotalSeconds} 秒后重试。");
+                  }
+                  else
+                  {
+                      MainWindow.Instance.WriteLine($"发生异常：{exception.Message}，等待 {timeSpan.TotalSeconds} 秒后重试。");
+                  }
+              });
         }
 
         public void SetOrigin(string origin)
