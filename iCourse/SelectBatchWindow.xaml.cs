@@ -37,6 +37,7 @@ namespace iCourse
                 return;
             }
             MainWindow.Instance.StartSelectClass(selectedItem);
+            this.Close();
         }
     }
 }

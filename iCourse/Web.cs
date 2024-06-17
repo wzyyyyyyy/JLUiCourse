@@ -225,8 +225,6 @@ namespace iCourse
 
         public async void SelectCourse(BatchInfo batch, Course course)
         {
-            client.SetReferer("https://icourses.jlu.edu.cn/xsxk/elective/grablessons?batchId=" + batch.batchCode);
-
             var response = await client.HttpPostAsync("xsxk/sc/clazz/addxk", new FormUrlEncodedContent(new Dictionary<string, string>
             {
                 {"clazzId", course.courseID},
@@ -253,6 +251,7 @@ namespace iCourse
                 }
                 MainWindow.Instance.WriteLine(course.courseName + " : 选课失败,原因：" + msg);
                 MainWindow.Instance.WriteLine(course.courseName + " : 重新尝试...");
+                Thread.Sleep(200);
                 SelectCourse(batch, course);
             }
         }
