@@ -9,6 +9,8 @@ namespace iCourse
 
         public static MainWindow Instance { get; private set; }
 
+        public static Web web { get; private set; }
+
         public MainWindow()
         {
             InitializeComponent();
@@ -29,7 +31,7 @@ namespace iCourse
             }
             var name = username.Text;
             var pw = password.Password;
-            Web web = new Web(name, pw);
+            web = new Web(name, pw);
 
             // 登录
             var (code, msg) = await web.LoginAsync();
@@ -58,9 +60,22 @@ namespace iCourse
             WriteLine($"学院：{collage}");
 
             // 显示选课批次
-            var batchInfos = web.GetBatchInfoAsync();
+            var batchInfos = web.GetBatchInfo();
             SelectBatchWindow selectBatchWindow = new SelectBatchWindow(batchInfos);
             selectBatchWindow.ShowDialog();
+        }
+
+        public async void StartSelectClass(BatchInfo batch)
+        {
+            web.SetBatchID(batch);
+            var list = await web.GetFavoriteCourses(batch);
+            foreach (var course in list)
+            {
+                Task.Run(() =>
+                {
+                    web.SelectCourse(batch, course);
+                });
+            }
         }
 
         public void WriteLine(string msg)

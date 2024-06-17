@@ -30,7 +30,13 @@ namespace iCourse
 
         private void Button_Click(object sender, RoutedEventArgs e)
         {
-
+            var selectedItem = objectListBox.SelectedItem as BatchInfo;
+            if (selectedItem == null)
+            {
+                MessageBox.Show("请选择一个批次");
+                return;
+            }
+            MainWindow.Instance.StartSelectClass(selectedItem);
         }
     }
 }
