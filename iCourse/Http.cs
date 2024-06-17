@@ -1,5 +1,6 @@
 ﻿using Polly;
 using Polly.Retry;
+using System.Net;
 using System.Net.Http;
 
 namespace iCourse
@@ -11,11 +12,17 @@ namespace iCourse
 
         public Http(TimeSpan timeout)
         {
-            _client = new HttpClient
+            HttpClientHandler handler = new HttpClientHandler
+            {
+                UseCookies = true
+            };
+
+            _client = new HttpClient(handler)
             {
                 Timeout = timeout,
                 BaseAddress = new Uri("https://icourses.jlu.edu.cn")
             };
+
             _client.DefaultRequestHeaders.Add("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9");
             _client.DefaultRequestHeaders.Add("Host", "icourses.jlu.edu.cn");
             _client.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.5060.114 Safari/537.36 Edg/103.0.1264.62");
@@ -59,6 +66,25 @@ namespace iCourse
                 _client.DefaultRequestHeaders.Remove("Referer");
             }
             _client.DefaultRequestHeaders.Add("Referer", referer);
+        }
+
+        public void AddHeader(string key, string value)
+        {
+            if (_client.DefaultRequestHeaders.Contains(key))
+            {
+                _client.DefaultRequestHeaders.Remove(key);
+            }
+            _client.DefaultRequestHeaders.Add(key, value);
+        }
+
+        public void AddCookie(string cookie)
+        {
+            var cookies = new CookieContainer();
+            var uri = new Uri("https://icourses.jlu.edu.cn");
+            cookies.Add(uri, new Cookie("your_cookie_name", "your_cookie_value"));
+
+            var handler = new HttpClientHandler { CookieContainer = cookies };
+            _client.DefaultRequestHeaders.Add("Cookie", cookie);
         }
 
         public async Task<string> HttpGetAsync(string url)

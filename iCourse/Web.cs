@@ -1,8 +1,11 @@
 ﻿using Newtonsoft.Json.Linq;
+using System.IO;
 using System.Net.Http;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Windows;
+using System.Windows.Documents;
 
 namespace iCourse
 {
@@ -75,7 +78,7 @@ namespace iCourse
             return (code, msg);
         }
 
-        public List<BatchInfo> GetBatchInfoAsync()
+        public List<BatchInfo> GetBatchInfo()
         {
             var batchInfos = new List<BatchInfo>();
             login_response["data"]["student"]["electiveBatchList"].ToList().ForEach(batch =>
@@ -158,6 +161,100 @@ namespace iCourse
         public JObject GetLoginResponse()
         {
             return login_response;
+        }
+
+        public async void SetBatchID(BatchInfo batch)
+        {
+            client.SetOrigin("https://icourses.jlu.edu.cn");
+            client.SetReferer("https://icourses.jlu.edu.cn/xsxk/profile/index.html");
+            client.AddHeader("Authorization", token);
+            var response = await client.HttpPostAsync("xsxk/elective/user", new FormUrlEncodedContent(new Dictionary<string, string>
+            {
+                {"batchId", batch.batchCode}
+            }));
+            var json = JObject.Parse(response);
+            if (json["code"].ToObject<int>() == 200)
+            {
+                MainWindow.Instance.WriteLine("选课批次设置成功");
+                MainWindow.Instance.WriteLine("已选批次:"+ batch.batchName);
+            }
+            else
+            {
+                MainWindow.Instance.WriteLine(json["msg"].ToString());
+            }
+
+            client.SetReferer("https://icourses.jlu.edu.cn/xsxk/profile/index.html");
+
+            await client.HttpGetAsync("xsxk/elective/grablessons?batchId=" + batch.batchCode);
+        }
+
+        public async Task<List<Course>> GetFavoriteCourses(BatchInfo batch)
+        {
+            List<Course> list = new List<Course>();
+
+            client.SetReferer("https://icourses.jlu.edu.cn/xsxk/elective/grablessons?batchId="+batch.batchCode);
+            var response = await client.HttpPostAsync("xsxk/sc/clazz/list", null);
+            var json = JObject.Parse(response);
+
+            var msg = String.Empty;
+
+            if (json["code"].ToObject<int>() == 200)
+            {
+                var courses = json["data"];
+                foreach (var course in courses)
+                {
+                    var courseInfo = new Course
+                    {
+                        courseName = course["KCM"].ToString(),
+                        courseID = course["JXBID"].ToString(),
+                        secretVal = course["secretVal"].ToString(),
+                        clazzType = course["teachingClassType"].ToString()
+                    };
+                    msg+= courseInfo.courseName + "\n";
+                    list.Add(courseInfo);
+                }
+            }
+            else
+            {
+                MainWindow.Instance.WriteLine(json["msg"].ToString());
+            }
+
+            MainWindow.Instance.WriteLine("收藏中的课程:\n" + msg);
+            return list;
+        }
+
+        public async void SelectCourse(BatchInfo batch, Course course)
+        {
+            client.SetReferer("https://icourses.jlu.edu.cn/xsxk/elective/grablessons?batchId=" + batch.batchCode);
+
+            var response = await client.HttpPostAsync("xsxk/sc/clazz/addxk", new FormUrlEncodedContent(new Dictionary<string, string>
+            {
+                {"clazzId", course.courseID},
+                {"secretVal", course.secretVal},
+                {"clazzType",course.clazzType }
+            }));
+
+            var json = JObject.Parse(response);
+
+            var code = json["code"].ToObject<int>();
+
+            if (code == 200)
+            {
+                MainWindow.Instance.WriteLine("选课成功");
+                MainWindow.Instance.WriteLine("已选课程:" + course.courseName);
+            }
+            else
+            {
+                var msg = json["msg"].ToString();
+                if (msg == "该课程已在选课结果中" || msg == "课容量已满")
+                {
+                    MainWindow.Instance.WriteLine(course.courseName+" : "+msg);
+                    MainWindow.Instance.WriteLine(course.courseName + " : 已放弃,尝试选下一门课程");
+                }
+                MainWindow.Instance.WriteLine(course.courseName + " : 选课失败,原因：" + msg);
+                MainWindow.Instance.WriteLine(course.courseName + " : 重新尝试...");
+                SelectCourse(batch, course);
+            }
         }
     }
 }
