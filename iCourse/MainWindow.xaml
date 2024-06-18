@@ -36,8 +36,13 @@
 
         <!-- Console Output -->
         <ScrollViewer x:Name="ConsoleScrollViewer" Grid.Row="1" Grid.Column="3" Margin="10,49,40,90" Background="#2E2E2E" Grid.RowSpan="3">
-            <TextBlock x:Name="ConsoleBox" Foreground="White" FontSize="14" TextWrapping="Wrap" Padding="10" VerticalAlignment="Top"/>
+            <ItemsControl ItemsSource="{Binding LogMessages}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <TextBlock Text="{Binding}" Foreground="White" FontSize="14" TextWrapping="Wrap" Padding="10" VerticalAlignment="Top"/>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
         </ScrollViewer>
-
     </Grid>
 </Window>
