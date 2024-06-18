@@ -21,7 +21,7 @@ jobs:
     - name: Setup .NET
       uses: actions/setup-dotnet@v3
       with:
-        dotnet-version: '8.0.0'  # 根据你的项目需要选择合适的.NET版本
+        dotnet-version: '8.0.x'  # 根据你的项目需要选择合适的.NET版本
 
     - name: Restore dependencies
       run: dotnet restore
