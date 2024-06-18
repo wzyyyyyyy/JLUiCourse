@@ -1,12 +1,10 @@
 name: Build and Package
 
 on:
-  push:
-    branches:
-      - main  # 根据你的实际主分支名称进行设置
-  pull_request:
-    branches:
-      - main  # 根据你的实际主分支名称进行设置
+push:
+branches: [ "master" ]
+pull_request:
+branches: [ "master" ]
 
 jobs:
   build:
