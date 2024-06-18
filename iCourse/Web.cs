@@ -252,7 +252,7 @@ namespace iCourse
                 }
                 MainWindow.Instance.WriteLine(course.courseName + " : 选课失败,原因：" + msg);
                 MainWindow.Instance.WriteLine(course.courseName + " : 重新尝试...");
-                Thread.Sleep(300);
+                Thread.Sleep(300 + new Random().Next(0, 200));
                 SelectCourse(batch, course);
             }
         }
