@@ -6,6 +6,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Documents;
+using System.Windows.Input;
 
 namespace iCourse
 {
@@ -251,7 +252,7 @@ namespace iCourse
                 }
                 MainWindow.Instance.WriteLine(course.courseName + " : 选课失败,原因：" + msg);
                 MainWindow.Instance.WriteLine(course.courseName + " : 重新尝试...");
-                Thread.Sleep(200);
+                Thread.Sleep(300);
                 SelectCourse(batch, course);
             }
         }

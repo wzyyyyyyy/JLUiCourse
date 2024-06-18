@@ -1,9 +1,11 @@
-﻿using System.Windows;
-using System.Windows.Controls;
+﻿using System.Collections.ObjectModel;
+using System.ComponentModel;
+using System.Threading;
+using System.Windows;
 
 namespace iCourse
 {
-    public partial class MainWindow : Window
+    public partial class MainWindow : Window, INotifyPropertyChanged
     {
         static bool isLogged = false;
 
@@ -11,10 +13,23 @@ namespace iCourse
 
         public static Web web { get; private set; }
 
+        private ObservableCollection<string> _logMessages;
+        public ObservableCollection<string> LogMessages
+        {
+            get => _logMessages;
+            set
+            {
+                _logMessages = value;
+                OnPropertyChanged(nameof(LogMessages));
+            }
+        }
+
         public MainWindow()
         {
             InitializeComponent();
             Instance = this;
+            LogMessages = new ObservableCollection<string>();
+            DataContext = this;
         }
 
         private async void LoginButton_Click(object sender, RoutedEventArgs e)
@@ -81,11 +96,26 @@ namespace iCourse
         public void WriteLine(string msg)
         {
             var time = DateTime.Now.ToString("HH:mm:ss");
-            Dispatcher.Invoke(() =>
+            var logMessage = $"[{time}] : {msg}";
+
+            Task.Run(() =>
             {
-                ConsoleBox.Text += "[" + time + "] : " + msg + "\n";
-                ConsoleScrollViewer.ScrollToEnd();
+                Dispatcher.Invoke(() =>
+                {
+                    LogMessages.Add(logMessage);
+                    if (ConsoleScrollViewer.VerticalOffset == ConsoleScrollViewer.ScrollableHeight)
+                    {
+                        ConsoleScrollViewer.ScrollToEnd();
+                    }
+                });
             });
+        }
+
+        public event PropertyChangedEventHandler PropertyChanged;
+
+        protected virtual void OnPropertyChanged(string propertyName)
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
     }
 }
