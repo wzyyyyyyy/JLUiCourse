@@ -34,16 +34,16 @@ namespace iCourse
 
         private async void LoginButton_Click(object sender, RoutedEventArgs e)
         {
-            await LoginAsync();
-        }
-
-        public async Task LoginAsync()
-        {
             if (isLogged)
             {
                 WriteLine("请勿重复登录！");
                 return;
             }
+            await LoginAsync();
+        }
+
+        public async Task LoginAsync()
+        {
             var name = username.Text;
             var pw = password.Password;
             web = new Web(name, pw);
@@ -83,12 +83,13 @@ namespace iCourse
         public async void StartSelectClass(BatchInfo batch)
         {
             web.SetBatchID(batch);
-            var list = await web.GetFavoriteCourses(batch);
+            var list = await web.GetFavoriteCourses();
+            web.KeepOnline();
             foreach (var course in list)
             {
                 _ = Task.Run(() =>
                 {
-                    web.SelectCourse(batch, course);
+                    web.SelectCourse(course);
                 });
             }
         }

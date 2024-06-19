@@ -21,6 +21,7 @@ namespace iCourse
         private string captcha;
         private string token;
         private JObject login_response;
+        private BatchInfo batch;
 
         public Web(string username, string password)
         {
@@ -166,6 +167,7 @@ namespace iCourse
 
         public async void SetBatchID(BatchInfo batch)
         {
+            this.batch = batch;
             client.SetOrigin("https://icourses.jlu.edu.cn");
             client.SetReferer("https://icourses.jlu.edu.cn/xsxk/profile/index.html");
             client.AddHeader("Authorization", token);
@@ -189,7 +191,7 @@ namespace iCourse
             await client.HttpGetAsync("xsxk/elective/grablessons?batchId=" + batch.batchCode);
         }
 
-        public async Task<List<Course>> GetFavoriteCourses(BatchInfo batch)
+        public async Task<List<Course>> GetFavoriteCourses()
         {
             List<Course> list = new List<Course>();
 
@@ -224,7 +226,7 @@ namespace iCourse
             return list;
         }
 
-        public async void SelectCourse(BatchInfo batch, Course course)
+        public async void SelectCourse(Course course)
         {
             while (true)
             {
@@ -258,6 +260,23 @@ namespace iCourse
                     await Task.Delay(200 + new Random().Next(0, 200));
                 }
             }
+        }
+
+        public void KeepOnline()
+        {
+            _ = Task.Run(async () =>
+            {
+                while (true)
+                {
+                    var response = await client.HttpPostAsync("xsxk/sc/clazz/list", null);
+                    if (response.StartsWith('<'))
+                    {
+                        MessageBox.Show("检测到掉线，请重启本软件！！！");
+                        return;
+                    }
+                    await Task.Delay(3000);
+                }
+            });
         }
     }
 }
