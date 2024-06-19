@@ -244,12 +244,6 @@ namespace iCourse
                     MainWindow.Instance.WriteLine("已选课程:" + course.courseName);
                     return;
                 }
-                else if(code == 401)
-                {
-                    MainWindow.Instance.WriteLine("由于未知原因掉线,尝试重新登录...");
-                    _ = MainWindow.Instance.LoginAsync();
-                    return;
-                }
                 else
                 {
                     var msg = json["msg"].ToString();
