@@ -86,7 +86,7 @@ namespace iCourse
             var list = await web.GetFavoriteCourses(batch);
             foreach (var course in list)
             {
-                Task.Run(() =>
+                _ = Task.Run(() =>
                 {
                     web.SelectCourse(batch, course);
                 });

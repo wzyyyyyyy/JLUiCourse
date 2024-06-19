@@ -92,12 +92,9 @@ namespace iCourse
             {
                 var request = new HttpRequestMessage(HttpMethod.Get, url);
 
-                using (var response = await _client.SendAsync(request))
-                {
-
-                    response.EnsureSuccessStatusCode();
-                    return await response.Content.ReadAsStringAsync();
-                }
+                using var response = await _client.SendAsync(request);
+                response.EnsureSuccessStatusCode();
+                return await response.Content.ReadAsStringAsync();
             });
         }
 
@@ -110,11 +107,9 @@ namespace iCourse
                     Content = content
                 };
 
-                using (var response = await _client.SendAsync(request))
-                {
-                    response.EnsureSuccessStatusCode();
-                    return await response.Content.ReadAsStringAsync();
-                }
+                using var response = await _client.SendAsync(request);
+                response.EnsureSuccessStatusCode();
+                return await response.Content.ReadAsStringAsync();
             });
         }
     }
