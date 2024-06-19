@@ -37,7 +37,7 @@ namespace iCourse
             await LoginAsync();
         }
 
-        private async Task LoginAsync()
+        public async Task LoginAsync()
         {
             if (isLogged)
             {
@@ -93,7 +93,7 @@ namespace iCourse
             }
         }
 
-        public void WriteLine(string msg)
+        public void WriteLine<T>(T msg)
         {
             var time = DateTime.Now.ToString("HH:mm:ss");
             var logMessage = $"[{time}] : {msg}";
