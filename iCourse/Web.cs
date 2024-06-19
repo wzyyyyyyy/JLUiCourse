@@ -226,35 +226,38 @@ namespace iCourse
 
         public async void SelectCourse(BatchInfo batch, Course course)
         {
-            var response = await client.HttpPostAsync("xsxk/sc/clazz/addxk", new FormUrlEncodedContent(new Dictionary<string, string>
+            while (true)
             {
-                {"clazzId", course.courseID},
-                {"secretVal", course.secretVal},
-                {"clazzType",course.clazzType }
-            }));
-
-            var json = JObject.Parse(response);
-
-            var code = json["code"].ToObject<int>();
-
-            if (code == 200)
-            {
-                MainWindow.Instance.WriteLine("选课成功");
-                MainWindow.Instance.WriteLine("已选课程:" + course.courseName);
-            }
-            else
-            {
-                var msg = json["msg"].ToString();
-                if (msg == "该课程已在选课结果中" || msg == "课容量已满")
+                var response = await client.HttpPostAsync("xsxk/sc/clazz/addxk", new FormUrlEncodedContent(new Dictionary<string, string>
                 {
-                    MainWindow.Instance.WriteLine(course.courseName+" : "+msg);
-                    MainWindow.Instance.WriteLine(course.courseName + " : 已放弃,尝试选下一门课程");
+                    {"clazzId", course.courseID},
+                    {"secretVal", course.secretVal},
+                    {"clazzType",course.clazzType }
+                }));
+
+                var json = JObject.Parse(response);
+
+                var code = json["code"].ToObject<int>();
+
+                if (code == 200)
+                {
+                    MainWindow.Instance.WriteLine("选课成功");
+                    MainWindow.Instance.WriteLine("已选课程:" + course.courseName);
                     return;
                 }
-                MainWindow.Instance.WriteLine(course.courseName + " : 选课失败,原因：" + msg);
-                MainWindow.Instance.WriteLine(course.courseName + " : 重新尝试...");
-                Thread.Sleep(300 + new Random().Next(0, 200));
-                SelectCourse(batch, course);
+                else
+                {
+                    var msg = json["msg"].ToString();
+                    if (msg == "该课程已在选课结果中" || msg == "课容量已满")
+                    {
+                        MainWindow.Instance.WriteLine(course.courseName + " : " + msg);
+                        MainWindow.Instance.WriteLine(course.courseName + " : 已放弃,尝试选下一门课程");
+                        return;
+                    }
+                    MainWindow.Instance.WriteLine(course.courseName + " : 选课失败,原因：" + msg);
+                    MainWindow.Instance.WriteLine(course.courseName + " : 重新尝试...");
+                    await Task.Delay(200 + new Random().Next(0, 200));
+                }
             }
         }
     }
