@@ -249,6 +249,7 @@ namespace iCourse
                 {
                     MainWindow.Instance.WriteLine(course.courseName+" : "+msg);
                     MainWindow.Instance.WriteLine(course.courseName + " : 已放弃,尝试选下一门课程");
+                    return;
                 }
                 MainWindow.Instance.WriteLine(course.courseName + " : 选课失败,原因：" + msg);
                 MainWindow.Instance.WriteLine(course.courseName + " : 重新尝试...");
