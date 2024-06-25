@@ -20,7 +20,7 @@
         </Grid.ColumnDefinitions>
 
         <!-- Username Label and TextBox -->
-        <TextBlock Grid.Row="1" HorizontalAlignment="Left" Margin="9,59,0,-20" Foreground="White" FontSize="14" Grid.RowSpan="3" Width="32" Grid.Column="1">
+        <TextBlock Grid.Row="1" HorizontalAlignment="Left" Margin="9,59,0,113" Foreground="White" FontSize="14" Width="32" Grid.Column="1">
             账号:
         </TextBlock>
         <TextBox x:Name="username" Grid.Row="1" Margin="10,0,15,0" VerticalAlignment="Center" Background="#2E2E2E" Foreground="White" FontSize="14" Height="28" Grid.Column="1"/>
@@ -30,6 +30,9 @@
             密码:
         </TextBlock>
         <PasswordBox x:Name="password" Grid.Row="1" Margin="9,167,0,0" VerticalAlignment="Top" Background="#2E2E2E" Foreground="White" FontSize="14" Height="28" Grid.Column="1" HorizontalAlignment="Left" Width="121"/>
+
+        <!-- Auto-Login Checkbox -->
+        <CheckBox x:Name="autoLoginCheckBox" Content="自动登录" Grid.Row="3" Margin="10,16,0,0" VerticalAlignment="Top" Foreground="White" FontSize="14" Grid.Column="1" Height="24"/>
 
         <!-- Login Button -->
         <Button x:Name="LoginButton" Grid.Row="3" Content="登录" Margin="9,45,0,0" VerticalAlignment="Top" Width="120" Height="33" Background="#3A3A3A" Foreground="White" FontSize="16" Click="LoginButton_Click" RenderTransformOrigin="0.71,0.406" Grid.Column="1" HorizontalAlignment="Left"/>
