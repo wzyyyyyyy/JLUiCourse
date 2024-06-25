@@ -1,5 +1,7 @@
-﻿using System.Collections.ObjectModel;
+﻿using Newtonsoft.Json;
+using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.IO;
 using System.Threading;
 using System.Windows;
 
@@ -31,6 +33,19 @@ namespace iCourse
             Instance = this;
             LogMessages = new ObservableCollection<string>();
             DataContext = this;
+
+            var credentials = LoadCredentials();
+            if (credentials != null)
+            {
+                username.Text = credentials.Username;
+                password.Password = credentials.Password;
+                autoLoginCheckBox.IsChecked = credentials.AutoLogin;
+
+                if (credentials.AutoLogin)
+                {
+                    _ = LoginAsync();
+                }
+            }
         }
 
         private void ShowDisclaimer()
@@ -44,6 +59,29 @@ namespace iCourse
             }
         }
 
+        private const string CredentialsFilePath = "credentials.json";
+
+        private void SaveCredentials(string username, string password, bool autoLogin)
+        {
+            var credentials = new UserCredentials
+            {
+                Username = username,
+                Password = password,
+                AutoLogin = autoLogin
+            };
+            File.WriteAllText(CredentialsFilePath, JsonConvert.SerializeObject(credentials));
+        }
+
+        private UserCredentials LoadCredentials()
+        {
+            if (File.Exists(CredentialsFilePath))
+            {
+                var json = File.ReadAllText(CredentialsFilePath);
+                return JsonConvert.DeserializeObject<UserCredentials>(json);
+            }
+            return null;
+        }
+
         private async void LoginButton_Click(object sender, RoutedEventArgs e)
         {
             if (isLogged)
@@ -51,7 +89,9 @@ namespace iCourse
                 WriteLine("请勿重复登录！");
                 return;
             }
-            await LoginAsync();
+
+            SaveCredentials(username.Text, password.Password, autoLoginCheckBox.IsChecked == true);
+            _ = LoginAsync();
         }
 
         public async Task LoginAsync()
