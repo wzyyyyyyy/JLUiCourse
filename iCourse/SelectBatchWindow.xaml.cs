@@ -18,7 +18,7 @@ namespace iCourse
         {
             var listBox = sender as ListBox;
             var selectedItem = listBox.SelectedItem as BatchInfo;
-            batchCodeTextBlock.Text = selectedItem.batchCode;
+            batchCodeTextBlock.Text = selectedItem.batchId;
             batchNameTextBlock.Text = selectedItem.batchName;
             beginTimeTextBlock.Text = selectedItem.beginTime;
             endTimeTextBlock.Text = selectedItem.endTime;
