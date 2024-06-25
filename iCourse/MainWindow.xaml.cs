@@ -2,7 +2,6 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.IO;
-using System.Threading;
 using System.Windows;
 
 namespace iCourse
@@ -132,16 +131,35 @@ namespace iCourse
             selectBatchWindow.ShowDialog();
         }
 
-        public async void StartSelectClass(BatchInfo batch)
+        public async Task StartSelectClass(BatchInfo batch)
         {
             await web.SetBatchIDAsync(batch);
             var list = await web.GetFavoriteCoursesAsync();
             web.KeepOnline();
-            foreach (var course in list)
+
+            var tasks = list.Select(async course =>
             {
-                _ = web.SelectCourseAsync(course);
+                var (isSuccess, msg) = await web.SelectCourseAsync(course);
+                return new { course.courseName, isSuccess, msg };
+            }).ToList();
+
+            var results = await Task.WhenAll(tasks);
+
+            WriteLine("选课完成!");
+
+            var failedCourses = results.Where(result => !result.isSuccess).ToList();
+            var successfulCount = results.Count(result => result.isSuccess);
+
+            foreach (var result in failedCourses)
+            {
+                WriteLine($"课程选择失败: {result.courseName}, 原因: {result.msg}");
             }
+
+            WriteLine($"选择成功课程的数目: {successfulCount}");
         }
+
+
+
 
         public void WriteLine<T>(T msg)
         {
