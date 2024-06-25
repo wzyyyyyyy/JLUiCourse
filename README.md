@@ -1,4 +1,6 @@
 [![Build and Package](https://github.com/wzyyyyyyy/JLUiCourse/actions/workflows/dotnet.yml/badge.svg)](https://github.com/wzyyyyyyy/JLUiCourse/actions/workflows/dotnet.yml)
+### 如果觉得不错的话，就给我一个star吧
+
 ## 使用方法
 
 ### 1. 下载和安装
