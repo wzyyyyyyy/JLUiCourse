@@ -26,10 +26,22 @@ namespace iCourse
 
         public MainWindow()
         {
+            ShowDisclaimer();
             InitializeComponent();
             Instance = this;
             LogMessages = new ObservableCollection<string>();
             DataContext = this;
+        }
+
+        private void ShowDisclaimer()
+        {
+            DisclaimerWindow disclaimerWindow = new DisclaimerWindow();
+            disclaimerWindow.ShowDialog();
+
+            if (!disclaimerWindow.IsAgreed)
+            {
+                throw new Exception("Disclaimer not agreed.");
+            }
         }
 
         private async void LoginButton_Click(object sender, RoutedEventArgs e)
@@ -82,15 +94,12 @@ namespace iCourse
 
         public async void StartSelectClass(BatchInfo batch)
         {
-            web.SetBatchID(batch);
-            var list = await web.GetFavoriteCourses();
+            await web.SetBatchIDAsync(batch);
+            var list = await web.GetFavoriteCoursesAsync();
             web.KeepOnline();
             foreach (var course in list)
             {
-                _ = Task.Run(() =>
-                {
-                    web.SelectCourse(course);
-                });
+                _ = web.SelectCourseAsync(course);
             }
         }
 

@@ -2,7 +2,7 @@
 {
     public class BatchInfo
     {
-        public string batchCode { get; set; }
+        public string batchId { get; set; }
         public string batchName { get; set; }
         public string beginTime { get; set; }
         public string endTime { get; set; }
