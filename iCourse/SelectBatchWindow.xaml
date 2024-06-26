@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:iCourse"
         mc:Ignorable="d"
-        Title="选课批次" Height="450" Width="600">
+        Title="选课批次" Height="465" Width="600">
     <Grid Background="#2E2E2E">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="*" />
@@ -16,7 +16,7 @@
                  SelectionChanged="objectListBox_SelectionChanged" 
                  HorizontalAlignment="Stretch" 
                  VerticalAlignment="Stretch" Background="#454545" Foreground="White" FontSize="14" Margin="10"/>
-        <StackPanel Grid.Column="1" Margin="20" HorizontalAlignment="Left" Width="360">
+        <StackPanel Grid.Column="1" Margin="0,20,0,10" HorizontalAlignment="Center" Width="360">
             <TextBlock Text="轮次码:" FontWeight="Bold" Foreground="White"/>
             <TextBlock Name="batchCodeTextBlock" Margin="0,0,0,10" Foreground="White"/>
             <TextBlock Text="轮次名:" FontWeight="Bold" Foreground="White"/>

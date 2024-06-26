@@ -1,6 +1,7 @@
 ﻿using System.IO;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using System.Windows.Media.Imaging;
 
 namespace iCourse
@@ -30,6 +31,14 @@ namespace iCourse
         private void TextBox_TextChanged(object sender, TextChangedEventArgs e)
         {
             Captcha = ((TextBox)sender).Text;
+        }
+
+        private void TextBox_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Enter)
+            {
+                this.Close();
+            }
         }
 
         private void Button_Click(object sender, RoutedEventArgs e)

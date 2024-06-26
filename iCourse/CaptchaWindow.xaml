@@ -14,8 +14,8 @@
         </Grid.ColumnDefinitions>
         <TextBlock HorizontalAlignment="Left" Height="25" Margin="30,24,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="100" FontSize="14" Foreground="White" Grid.ColumnSpan="3"><Run Language="zh-cn" Text="请输入验证码："/></TextBlock>
         <Image x:Name="image" HorizontalAlignment="Left" Height="80" Margin="30,64,0,0" VerticalAlignment="Top" Width="190" Grid.ColumnSpan="3"/>
-        <TextBox x:Name="inputBox" HorizontalAlignment="Left" Margin="30,159,0,0" TextWrapping="Wrap" Width="135" TextChanged="TextBox_TextChanged" FontSize="14" Text="" Background="#FF383838" Height="25" VerticalAlignment="Top" Foreground="White" Grid.ColumnSpan="3"/>
-        <Button Content="确定" HorizontalAlignment="Left" Height="25" Margin="90,159,0,0" VerticalAlignment="Top" Width="40" Click="Button_Click" Background="#FF383838" Foreground="White" Grid.Column="2"/>
+        <TextBox x:Name="inputBox" HorizontalAlignment="Left" Margin="30,159,0,0" TextWrapping="Wrap" Width="135" KeyDown="TextBox_KeyDown" TextChanged="TextBox_TextChanged" FontSize="14" Text="" Background="#FF383838" Height="25" VerticalAlignment="Top" Foreground="White" Grid.ColumnSpan="3"/>
+        <Button Content="确定" HorizontalAlignment="Left" Height="25" Margin="80,159,0,0" VerticalAlignment="Top" Width="45" Click="Button_Click" Background="#FF383838" Foreground="White" Grid.Column="2"/>
 
 
     </Grid>
