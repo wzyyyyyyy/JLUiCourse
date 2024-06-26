@@ -81,7 +81,7 @@ namespace iCourse
             return null;
         }
 
-        private async void LoginButton_Click(object sender, RoutedEventArgs e)
+        private void LoginButton_Click(object sender, RoutedEventArgs e)
         {
             if (isLogged)
             {
