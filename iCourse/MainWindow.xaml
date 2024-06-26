@@ -23,13 +23,13 @@
         <TextBlock Grid.Row="1" HorizontalAlignment="Left" Margin="9,59,0,113" Foreground="White" FontSize="14" Width="32" Grid.Column="1">
             账号:
         </TextBlock>
-        <TextBox x:Name="username" Grid.Row="1" Margin="10,0,15,0" VerticalAlignment="Center" Background="#2E2E2E" Foreground="White" FontSize="14" Height="28" Grid.Column="1"/>
+        <TextBox x:Name="username" KeyDown="username_KeyDown" Grid.Row="1" Margin="10,0,15,0" VerticalAlignment="Center" Background="#2E2E2E" Foreground="White" FontSize="14" Height="28" Grid.Column="1"/>
 
         <!-- Password Label and PasswordBox -->
         <TextBlock Grid.Row="1" HorizontalAlignment="Left" Margin="10,134,0,39" Foreground="White" FontSize="14" Width="31" Grid.Column="1">
             密码:
         </TextBlock>
-        <PasswordBox x:Name="password" Grid.Row="1" Margin="9,167,0,0" VerticalAlignment="Top" Background="#2E2E2E" Foreground="White" FontSize="14" Height="28" Grid.Column="1" HorizontalAlignment="Left" Width="121"/>
+        <PasswordBox x:Name="password" KeyDown ="password_KeyDown" Grid.Row="1" Margin="9,167,0,0" VerticalAlignment="Top" Background="#2E2E2E" Foreground="White" FontSize="14" Height="28" Grid.Column="1" HorizontalAlignment="Left" Width="121"/>
 
         <!-- Auto-Login Checkbox -->
         <CheckBox x:Name="autoLoginCheckBox" Content="自动登录" Grid.Row="3" Margin="10,16,0,0" VerticalAlignment="Top" Foreground="White" FontSize="14" Grid.Column="1" Height="24"/>
