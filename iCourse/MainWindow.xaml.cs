@@ -16,6 +16,8 @@ namespace iCourse
 
         public static Web web { get; private set; }
 
+        public static UserCredentials Credentials { get; private set; }
+
         private ObservableCollection<string> _logMessages;
         public ObservableCollection<string> LogMessages
         {
@@ -35,14 +37,15 @@ namespace iCourse
             LogMessages = new ObservableCollection<string>();
             DataContext = this;
 
-            var credentials = LoadCredentials();
-            if (credentials != null)
+            Credentials = UserCredentials.Load();
+            if (Credentials != null)
             {
-                username.Text = credentials.Username;
-                password.Password = credentials.Password;
-                autoLoginCheckBox.IsChecked = credentials.AutoLogin;
+                username.Text = Credentials.Username;
+                password.Password = Credentials.Password;
+                autoLoginCheckBox.IsChecked = Credentials.AutoLogin;
+                autoSelectBatchCheckBox.IsChecked = Credentials.AutoSelectBatch;
 
-                if (credentials.AutoLogin)
+                if (Credentials.AutoLogin)
                 {
                     _ = LoginAsync();
                 }
@@ -60,29 +63,6 @@ namespace iCourse
             }
         }
 
-        private const string CredentialsFilePath = "credentials.json";
-
-        private void SaveCredentials(string username, string password, bool autoLogin)
-        {
-            var credentials = new UserCredentials
-            {
-                Username = username,
-                Password = password,
-                AutoLogin = autoLogin
-            };
-            File.WriteAllText(CredentialsFilePath, JsonConvert.SerializeObject(credentials));
-        }
-
-        private UserCredentials LoadCredentials()
-        {
-            if (File.Exists(CredentialsFilePath))
-            {
-                var json = File.ReadAllText(CredentialsFilePath);
-                return JsonConvert.DeserializeObject<UserCredentials>(json);
-            }
-            return null;
-        }
-
         private void LoginButton_Click(object sender, RoutedEventArgs e)
         {
             if (isLogged)
@@ -91,7 +71,15 @@ namespace iCourse
                 return;
             }
 
-            SaveCredentials(username.Text, password.Password, autoLoginCheckBox.IsChecked == true);
+            if (Credentials == null)
+            {
+                Credentials = new UserCredentials();
+                Credentials.Username = username.Text;
+                Credentials.Password = password.Password;
+                Credentials.AutoLogin = autoLoginCheckBox.IsChecked ?? false;
+                Credentials.AutoSelectBatch = autoSelectBatchCheckBox.IsChecked ?? false;
+            }
+            Credentials.Save();
             _ = LoginAsync();
         }
 
@@ -159,9 +147,6 @@ namespace iCourse
 
             WriteLine($"选择成功课程的数目: {successfulCount}");
         }
-
-
-
 
         public void WriteLine<T>(T msg)
         {
