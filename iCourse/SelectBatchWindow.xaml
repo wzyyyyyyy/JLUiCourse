@@ -33,7 +33,7 @@
             <TextBlock Name="typeNameTextBlock" Margin="0,0,0,10" Foreground="White"/>
             <TextBlock Text="是否可选:" FontWeight="Bold" Foreground="White"/>
             <TextBlock Name="canSelectTextBlock" Margin="0,0,0,10" Foreground="White"/>
-            <Button Content="确定" Width="100" Height="30" HorizontalAlignment="Center" Margin="0,20,0,0" Background="#FF5E5E5E" Foreground="White" Click="Button_Click"/>
+            <Button Name="confirmButton" Content="确定" Width="100" Height="30" HorizontalAlignment="Center" Margin="0,20,0,0" Background="#FF5E5E5E" Foreground="White" Click="Button_Click"/>
         </StackPanel>
     </Grid>
 </Window>

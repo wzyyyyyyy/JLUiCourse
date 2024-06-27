@@ -12,6 +12,24 @@ namespace iCourse
         {
             InitializeComponent();
             objectListBox.ItemsSource = batchList;
+
+            if (!MainWindow.Credentials.AutoSelectBatch)
+            {
+                return;
+            }
+
+            if (MainWindow.Credentials.LastBatchId != null)
+            {
+                foreach (var item in batchList)
+                {
+                    if (item.batchId == MainWindow.Credentials.LastBatchId)
+                    {
+                        objectListBox.SelectedItem = item;
+                        confirmButton.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                        break;
+                    }
+                }
+            }
         }
 
         private void objectListBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -36,7 +54,14 @@ namespace iCourse
                 MessageBox.Show("请选择一个批次");
                 return;
             }
-            MainWindow.Instance.StartSelectClass(selectedItem);
+
+            if (MainWindow.Credentials.AutoSelectBatch)
+            {
+                MainWindow.Credentials.LastBatchId = selectedItem.batchId;
+                MainWindow.Credentials.Save();
+            }
+
+            _ = MainWindow.Instance.StartSelectClass(selectedItem);
             this.Close();
         }
     }
