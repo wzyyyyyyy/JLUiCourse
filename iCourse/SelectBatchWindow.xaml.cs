@@ -55,11 +55,9 @@ namespace iCourse
                 return;
             }
 
-            if (MainWindow.Credentials.AutoSelectBatch)
-            {
-                MainWindow.Credentials.LastBatchId = selectedItem.batchId;
-                MainWindow.Credentials.Save();
-            }
+            
+            MainWindow.Credentials.LastBatchId = selectedItem.batchId;
+            MainWindow.Credentials.Save();
 
             _ = MainWindow.Instance.StartSelectClass(selectedItem);
             this.Close();
