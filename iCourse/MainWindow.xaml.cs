@@ -49,7 +49,15 @@ namespace iCourse
                 {
                     _ = LoginAsync();
                 }
+                return;
             }
+
+            Credentials = new UserCredentials();
+            Credentials.Username = username.Text;
+            Credentials.Password = password.Password;
+            Credentials.AutoLogin = autoLoginCheckBox.IsChecked ?? false;
+            Credentials.AutoSelectBatch = autoSelectBatchCheckBox.IsChecked ?? false;
+            Credentials.Save();
         }
 
         private void ShowDisclaimer()
@@ -71,15 +79,6 @@ namespace iCourse
                 return;
             }
 
-            if (Credentials == null)
-            {
-                Credentials = new UserCredentials();
-                Credentials.Username = username.Text;
-                Credentials.Password = password.Password;
-                Credentials.AutoLogin = autoLoginCheckBox.IsChecked ?? false;
-                Credentials.AutoSelectBatch = autoSelectBatchCheckBox.IsChecked ?? false;
-            }
-            Credentials.Save();
             _ = LoginAsync();
         }
 
@@ -187,6 +186,23 @@ namespace iCourse
             {
                 LoginButton.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
             }
+        }
+
+        private void autoSelectBatchCheckBox_Checked(object sender, RoutedEventArgs e)
+        {
+            Credentials.AutoSelectBatch = autoSelectBatchCheckBox.IsChecked ?? false;
+            Credentials.Save();
+        }
+
+        private void autoLoginCheckBox_Checked(object sender, RoutedEventArgs e)
+        {
+            Credentials.AutoLogin = autoLoginCheckBox.IsChecked ?? false;
+            Credentials.Save();
+        }
+
+        private void autoSelectBatchCheckBox_Unchecked(object sender, RoutedEventArgs e)
+        {
+
         }
     }
 }
