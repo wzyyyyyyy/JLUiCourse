@@ -199,10 +199,5 @@ namespace iCourse
             Credentials.AutoLogin = autoLoginCheckBox.IsChecked ?? false;
             Credentials.Save();
         }
-
-        private void autoSelectBatchCheckBox_Unchecked(object sender, RoutedEventArgs e)
-        {
-
-        }
     }
 }
