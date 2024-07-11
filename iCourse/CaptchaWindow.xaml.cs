@@ -1,4 +1,7 @@
-﻿using System.IO;
+﻿using Sdcb.PaddleInference;
+using Sdcb.PaddleOCR.Models;
+using Sdcb.PaddleOCR;
+using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -9,7 +12,7 @@ namespace iCourse
     /// <summary>
     /// CaptchaWindow.xaml 的交互逻辑
     /// </summary>
-    public partial class CaptchaWindow : Window
+    public partial class CaptchaWindow : System.Windows.Window
     {
         public static string Captcha { get; private set; }
 

@@ -1,7 +1,5 @@
-﻿using Newtonsoft.Json;
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using System.ComponentModel;
-using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -52,11 +50,13 @@ namespace iCourse
                 return;
             }
 
-            Credentials = new UserCredentials();
-            Credentials.Username = username.Text;
-            Credentials.Password = password.Password;
-            Credentials.AutoLogin = autoLoginCheckBox.IsChecked ?? false;
-            Credentials.AutoSelectBatch = autoSelectBatchCheckBox.IsChecked ?? false;
+            Credentials = new UserCredentials
+            {
+                Username = username.Text,
+                Password = password.Password,
+                AutoLogin = autoLoginCheckBox.IsChecked ?? false,
+                AutoSelectBatch = autoSelectBatchCheckBox.IsChecked ?? false
+            };
             Credentials.Save();
         }
 
