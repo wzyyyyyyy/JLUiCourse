@@ -20,15 +20,10 @@ namespace iCourse
 
             if (MainWindow.Credentials.LastBatchId != null)
             {
-                foreach (var item in batchList)
-                {
-                    if (item.batchId == MainWindow.Credentials.LastBatchId)
-                    {
-                        objectListBox.SelectedItem = item;
-                        confirmButton.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
-                        break;
-                    }
-                }
+                objectListBox.SelectedItem = (from item in batchList
+                                              where item.batchId == MainWindow.Credentials.LastBatchId
+                                              select item).FirstOrDefault();
+                confirmButton.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
             }
         }
 
@@ -55,7 +50,7 @@ namespace iCourse
                 return;
             }
 
-            
+
             MainWindow.Credentials.LastBatchId = selectedItem.batchId;
             MainWindow.Credentials.Save();
 

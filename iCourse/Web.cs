@@ -219,7 +219,7 @@ namespace iCourse
             return coursesList;
         }
 
-        public async Task<(bool isSuccess,string? msg)> SelectCourseAsync(Course course)
+        public async Task<(bool isSuccess, string? msg)> SelectCourseAsync(Course course)
         {
             while (true)
             {
@@ -237,7 +237,7 @@ namespace iCourse
                 if (code == 200)
                 {
                     MainWindow.Instance.WriteLine("已选课程:" + course.courseName);
-                    return (true,null);
+                    return (true, null);
                 }
                 else
                 {
@@ -246,14 +246,14 @@ namespace iCourse
                     {
                         MainWindow.Instance.WriteLine(course.courseName + " : " + msg);
                         MainWindow.Instance.WriteLine(course.courseName + " : 已放弃,尝试选下一门课程");
-                        return (true,null);
+                        return (true, null);
                     }
 
                     if (msg == "课容量已满")
                     {
                         MainWindow.Instance.WriteLine(course.courseName + " : " + msg);
                         MainWindow.Instance.WriteLine(course.courseName + " : 已放弃,尝试选下一门课程");
-                        return (false,msg);
+                        return (false, msg);
                     }
 
                     MainWindow.Instance.WriteLine(course.courseName + " : 选课失败,原因：" + msg);
