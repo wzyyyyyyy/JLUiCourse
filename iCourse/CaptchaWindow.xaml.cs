@@ -1,7 +1,4 @@
-﻿using Sdcb.PaddleInference;
-using Sdcb.PaddleOCR.Models;
-using Sdcb.PaddleOCR;
-using System.IO;
+﻿using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
