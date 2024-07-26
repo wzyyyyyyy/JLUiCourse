@@ -1,9 +1,9 @@
 ﻿using Newtonsoft.Json.Linq;
+using System.Diagnostics;
 using System.Net.Http;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
-
 using System.Windows;
 
 namespace iCourse
@@ -16,7 +16,7 @@ namespace iCourse
         private readonly string username = username;
         private string password = password;
         private string uuid;
-        private string captcha;
+        private string captcha => CaptchaWindow.Captcha;
         private string token;
         private JObject loginResponse;
         private BatchInfo batch;
@@ -131,7 +131,6 @@ namespace iCourse
             {
                 CaptchaWindow captchaWindow = new CaptchaWindow(base64Image);
                 captchaWindow.ShowDialog();
-                captcha = CaptchaWindow.Captcha;
             });
         }
 
@@ -272,10 +271,33 @@ namespace iCourse
                     var response = await client.HttpPostAsync("xsxk/sc/clazz/list", null);
                     if (response.StartsWith('<'))
                     {
-                        MessageBox.Show("检测到掉线，请重启本软件！！！");
+                        _ = Task.Run(() =>
+                        {
+                            MessageBox.Show("检测到掉线，将在1秒后重启本软件！！！");
+                        });
+
+                        var timer = new System.Timers.Timer(1000);
+                        timer.Elapsed += (sender, e) =>
+                        {
+                            timer.Stop();
+                            string appPath = Process.GetCurrentProcess().MainModule.FileName;
+
+                            try
+                            {
+                                Process.Start(appPath);
+                                Application.Current.Dispatcher.Invoke(() => Application.Current.Shutdown());
+                            }
+                            catch (Exception ex)
+                            {
+                                MessageBox.Show($"发生错误: {ex.Message}");
+                            }
+                        };
+
+                        timer.Start();
+
                         return;
                     }
-                    await Task.Delay(3000);
+                    await Task.Delay(1500);
                 }
             });
         }
