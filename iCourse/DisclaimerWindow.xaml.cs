@@ -1,4 +1,5 @@
-﻿using System.Windows;
+﻿using System.IO;
+using System.Windows;
 
 namespace iCourse
 {
@@ -15,6 +16,10 @@ namespace iCourse
         private void AgreeButton_Click(object sender, RoutedEventArgs e)
         {
             IsAgreed = true;
+            if (NoShowCheckBox.IsChecked ?? false)
+            {
+                File.Create(".noshow");
+            }
             this.Close();
         }
 
