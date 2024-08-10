@@ -1,4 +1,4 @@
-﻿namespace iCourse
+﻿namespace iCourse.Models
 {
     public class BatchInfo
     {

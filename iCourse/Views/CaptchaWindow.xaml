@@ -1,0 +1,71 @@
+﻿<Window x:Class="iCourse.Views.CaptchaWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="clr-namespace:iCourse.ViewModels"
+        mc:Ignorable="d"
+        Title="验证码"
+        Height="250"
+        Width="260"
+        WindowStartupLocation="CenterScreen"
+        Background="#FF1F1F1F">
+
+    <Window.DataContext>
+        <vm:CaptchaWindowViewModel/>
+    </Window.DataContext>
+
+    <Grid Margin="0,0,0,-6">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+
+        <!-- 提示文字 -->
+        <TextBlock Text="请输入验证码：" 
+                   FontSize="14" 
+                   Foreground="White" 
+                   Margin="30,24,0,0" 
+                   Grid.ColumnSpan="2"/>
+
+        <!-- 验证码图片 -->
+        <Image  Height="80" 
+               Margin="30,10,0,0" 
+               Grid.Row="1" 
+               Grid.ColumnSpan="2" 
+               Grid.Column="0" 
+               Source="{Binding ImageSource}"/>
+
+        <!-- 输入框 -->
+        <TextBox Width="135"
+                 FontSize="14" 
+                 Background="#FF383838" 
+                 Height="25" 
+                 Foreground="White" 
+                 Margin="30,10,0,0"
+                 Text="{Binding Captcha, UpdateSourceTrigger=PropertyChanged}"
+                 Grid.Row="2" 
+                 Grid.Column="0">
+            <TextBox.InputBindings>
+                <KeyBinding Key="Enter"
+                            Command="{Binding CloseCommand}"/>
+            </TextBox.InputBindings>
+        </TextBox>
+
+        <!-- 确定按钮 -->
+        <Button Content="确定"
+                Width="45" 
+                Height="25" 
+                Background="#FF383838" 
+                Foreground="White" 
+                Margin="10,10,0,0"
+                Command="{Binding CloseCommand}"
+                Grid.Row="2" 
+                Grid.Column="1"/>
+    </Grid>
+</Window>

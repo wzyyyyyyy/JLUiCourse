@@ -1,6 +1,6 @@
-﻿namespace iCourse
+﻿namespace iCourse.Models
 {
-    public class Course
+    public class CourseInfo
     {
         public string courseName { get; set; }
         public string courseID { get; set; }

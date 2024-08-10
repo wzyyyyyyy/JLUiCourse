@@ -1,4 +1,4 @@
-﻿<Window x:Class="iCourse.DisclaimerWindow"
+﻿<Window x:Class="iCourse.Views.DisclaimerWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="免责协议" Height="335" Width="360" ResizeMode="NoResize" WindowStartupLocation="CenterScreen" Background="#1F1F1F">
@@ -14,8 +14,8 @@
             <ColumnDefinition Width="*" />
         </Grid.ColumnDefinitions>
 
-        <TextBlock Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2" TextWrapping="Wrap" Margin="0,0,0,10" Foreground="White" 
-                   Text="本软件完全免费，仅供学习和研究使用。请勿将其用于任何违反学校或相关法律法规的行为。用户需自行承担使用本软件所产生的后果，开发者不对因使用本软件造成的任何直接或间接损失负责。在使用本软件过程中，用户应遵守所在机构及国家的相关法律法规。如因使用本软件违反相关规定，责任由用户自行承担。本软件未经吉林大学官方授权，与吉林大学无任何直接或间接关联。" FontSize="14" />
+        <TextBlock Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2" TextWrapping="Wrap" Margin="0,0,0,30" Foreground="White" 
+                   Text="本软件完全免费，仅供学习和研究使用。请勿将其用于任何违反学校或相关法律法规的行为。用户需自行承担使用本软件所产生的后果，开发者不对因使用本软件造成的任何直接或间接损失负责。在使用本软件过程中，用户应遵守所在机构及国家的相关法律法规。如因使用本软件违反相关规定，责任由用户自行承担。本软件未经吉林大学官方授权，与吉林大学无任何直接或间接关联。" FontSize="14" Grid.RowSpan="2" />
 
         <CheckBox x:Name="AgreeCheckBox" Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" Content="我已阅读并同意" HorizontalAlignment="Left" VerticalAlignment="Center" 
                   Margin="0,10,0,10" FontSize="14" Foreground="White"/>

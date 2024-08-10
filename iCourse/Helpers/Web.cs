@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json.Linq;
+﻿using iCourse.Models;
+using Newtonsoft.Json.Linq;
 using System.Diagnostics;
 using System.Net.Http;
 using System.Security.Cryptography;
@@ -6,25 +7,23 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Windows;
 
-namespace iCourse
+namespace iCourse.Helpers
 {
     public class Web(string username, string password)
     {
         private Http client;
 
         private string aesKey;
-        private readonly string username = username;
-        private string password = password;
         private string uuid;
-        private string captcha => CaptchaWindow.Captcha;
+        private static string Captcha => ViewModels.CaptchaWindow.Captcha;
         private string token;
         private JObject loginResponse;
         private BatchInfo batch;
 
         private async Task InitializeClientAsync()
         {
-            await RetrieveAESKeyAsync();
-            byte[] encryptedBytes = EncryptWithAES(password, aesKey);
+            await RetrieveAesKeyAsync();
+            var encryptedBytes = EncryptWithAes(password, aesKey);
             password = Convert.ToBase64String(encryptedBytes);
         }
 
@@ -48,8 +47,8 @@ namespace iCourse
             var json = JObject.Parse(response);
             loginResponse = json;
 
-            int code = json["code"].ToObject<int>();
-            string msg = json["msg"].ToString();
+            var code = json["code"].ToObject<int>();
+            var msg = json["msg"].ToString();
 
             if (code == 200 && json.ContainsKey("data"))
             {
@@ -65,41 +64,39 @@ namespace iCourse
 
             await InitializeClientAsync();
 
-            string captchaImage = await FetchCaptchaAsync();
+            var captchaImage = await FetchCaptchaAsync();
             await DisplayCaptchaAsync(captchaImage);
 
             var (code, msg) = await AttemptLoginAsync();
 
             if (msg == "验证码错误")
             {
-                MainWindow.Instance.WriteLine(msg);
+                ViewModels.MainWindow.Instance.WriteLine(msg);
                 (code, msg) = await LoginAsync();
             }
 
             return (code, msg);
         }
 
-        private byte[] EncryptWithAES(string plainText, string aesKey)
+        private static byte[] EncryptWithAes(string plainText, string aesKey)
         {
-            byte[] keyBytes = Encoding.UTF8.GetBytes(aesKey);
+            var keyBytes = Encoding.UTF8.GetBytes(aesKey);
 
-            using (Aes aesAlg = Aes.Create())
-            {
-                aesAlg.Key = keyBytes;
-                aesAlg.Mode = CipherMode.ECB;
-                aesAlg.Padding = PaddingMode.PKCS7;
+            using var aesAlg = Aes.Create();
+            aesAlg.Key = keyBytes;
+            aesAlg.Mode = CipherMode.ECB;
+            aesAlg.Padding = PaddingMode.PKCS7;
 
-                ICryptoTransform encryptor = aesAlg.CreateEncryptor(aesAlg.Key, aesAlg.IV);
+            var encryptor = aesAlg.CreateEncryptor(aesAlg.Key, aesAlg.IV);
 
-                byte[] plainBytes = Encoding.UTF8.GetBytes(plainText);
+            var plainBytes = Encoding.UTF8.GetBytes(plainText);
 
-                byte[] encryptedBytes = encryptor.TransformFinalBlock(plainBytes, 0, plainBytes.Length);
+            var encryptedBytes = encryptor.TransformFinalBlock(plainBytes, 0, plainBytes.Length);
 
-                return encryptedBytes;
-            }
+            return encryptedBytes;
         }
 
-        private async Task RetrieveAESKeyAsync()
+        private async Task RetrieveAesKeyAsync()
         {
             var response = await client.HttpGetAsync("");
             var match = Regex.Match(response, "loginVue\\.loginForm\\.aesKey\\s*=\\s*\"([^\"]+)\"");
@@ -119,17 +116,17 @@ namespace iCourse
             {
                 {"loginname", username},
                 {"password", password},
-                {"captcha", captcha},
+                {"captcha", Captcha},
                 {"uuid", uuid}
             }));
             return response;
         }
 
-        private async Task DisplayCaptchaAsync(string base64Image)
+        private static async Task DisplayCaptchaAsync(string base64Image)
         {
-            await MainWindow.Instance.Dispatcher.InvokeAsync(() =>
+            await ViewModels.MainWindow.Instance.Dispatcher.InvokeAsync(() =>
             {
-                CaptchaWindow captchaWindow = new CaptchaWindow(base64Image);
+                var captchaWindow = new ViewModels.CaptchaWindow(base64Image);
                 captchaWindow.ShowDialog();
             });
         }
@@ -160,7 +157,7 @@ namespace iCourse
             return batchInfos;
         }
 
-        public async Task SetBatchIDAsync(BatchInfo batch)
+        public async Task SetBatchIdAsync(BatchInfo batch)
         {
             this.batch = batch;
             client.SetOrigin("https://icourses.jlu.edu.cn");
@@ -173,12 +170,12 @@ namespace iCourse
             var json = JObject.Parse(response);
             if (json["code"].ToObject<int>() == 200)
             {
-                MainWindow.Instance.WriteLine("选课批次设置成功");
-                MainWindow.Instance.WriteLine("已选批次:" + batch.batchName);
+                ViewModels.MainWindow.Instance.WriteLine("选课批次设置成功");
+                ViewModels.MainWindow.Instance.WriteLine("已选批次:" + batch.batchName);
             }
             else
             {
-                MainWindow.Instance.WriteLine(json["msg"].ToString());
+                ViewModels.MainWindow.Instance.WriteLine(json["msg"].ToString());
             }
 
             client.SetReferer("https://icourses.jlu.edu.cn/xsxk/profile/index.html");
@@ -186,9 +183,9 @@ namespace iCourse
             await client.HttpGetAsync("xsxk/elective/grablessons?batchId=" + batch.batchId);
         }
 
-        public async Task<List<Course>> GetFavoriteCoursesAsync()
+        public async Task<List<CourseInfo>> GetFavoriteCoursesAsync()
         {
-            List<Course> coursesList = new List<Course>();
+            var coursesList = new List<CourseInfo>();
 
             client.SetReferer("https://icourses.jlu.edu.cn/xsxk/elective/grablessons?batchId=" + batch.batchId);
             var response = await client.HttpPostAsync("xsxk/sc/clazz/list", null);
@@ -199,7 +196,7 @@ namespace iCourse
                 var courses = json["data"];
                 foreach (var course in courses)
                 {
-                    var courseInfo = new Course
+                    var courseInfo = new CourseInfo
                     {
                         courseName = course["KCM"].ToString(),
                         courseID = course["JXBID"].ToString(),
@@ -211,22 +208,22 @@ namespace iCourse
             }
             else
             {
-                MainWindow.Instance.WriteLine(json["msg"].ToString());
+                ViewModels.MainWindow.Instance.WriteLine(json["msg"].ToString());
             }
 
-            MainWindow.Instance.WriteLine("收藏中的课程:\n" + string.Join("\n", coursesList.Select(c => c.courseName)));
+            ViewModels.MainWindow.Instance.WriteLine("收藏中的课程:\n" + string.Join("\n", coursesList.Select(c => c.courseName)));
             return coursesList;
         }
 
-        public async Task<(bool isSuccess, string? msg)> SelectCourseAsync(Course course)
+        public async Task<(bool isSuccess, string? msg)> SelectCourseAsync(CourseInfo courseInfo)
         {
             while (true)
             {
                 var response = await client.HttpPostAsync("xsxk/sc/clazz/addxk", new FormUrlEncodedContent(new Dictionary<string, string>
                 {
-                    {"clazzId", course.courseID},
-                    {"secretVal", course.secretVal},
-                    {"clazzType", course.clazzType }
+                    {"clazzId", courseInfo.courseID},
+                    {"secretVal", courseInfo.secretVal},
+                    {"clazzType", courseInfo.clazzType }
                 }));
 
                 var json = JObject.Parse(response);
@@ -235,7 +232,7 @@ namespace iCourse
 
                 if (code == 200)
                 {
-                    MainWindow.Instance.WriteLine("已选课程:" + course.courseName);
+                    ViewModels.MainWindow.Instance.WriteLine("已选课程:" + courseInfo.courseName);
                     return (true, null);
                 }
                 else
@@ -243,20 +240,20 @@ namespace iCourse
                     var msg = json["msg"].ToString();
                     if (msg == "该课程已在选课结果中")
                     {
-                        MainWindow.Instance.WriteLine(course.courseName + " : " + msg);
-                        MainWindow.Instance.WriteLine(course.courseName + " : 已放弃,尝试选下一门课程");
+                        ViewModels.MainWindow.Instance.WriteLine(courseInfo.courseName + " : " + msg);
+                        ViewModels.MainWindow.Instance.WriteLine(courseInfo.courseName + " : 已放弃,尝试选下一门课程");
                         return (true, null);
                     }
 
                     if (msg == "课容量已满")
                     {
-                        MainWindow.Instance.WriteLine(course.courseName + " : " + msg);
-                        MainWindow.Instance.WriteLine(course.courseName + " : 已放弃,尝试选下一门课程");
+                        ViewModels.MainWindow.Instance.WriteLine(courseInfo.courseName + " : " + msg);
+                        ViewModels.MainWindow.Instance.WriteLine(courseInfo.courseName + " : 已放弃,尝试选下一门课程");
                         return (false, msg);
                     }
 
-                    MainWindow.Instance.WriteLine(course.courseName + " : 选课失败,原因：" + msg);
-                    MainWindow.Instance.WriteLine(course.courseName + " : 重新尝试...");
+                    ViewModels.MainWindow.Instance.WriteLine(courseInfo.courseName + " : 选课失败,原因：" + msg);
+                    ViewModels.MainWindow.Instance.WriteLine(courseInfo.courseName + " : 重新尝试...");
                     await Task.Delay(200 + new Random().Next(0, 200));
                 }
             }
@@ -280,7 +277,7 @@ namespace iCourse
                         timer.Elapsed += (sender, e) =>
                         {
                             timer.Stop();
-                            string appPath = Process.GetCurrentProcess().MainModule.FileName;
+                            var appPath = Process.GetCurrentProcess().MainModule.FileName;
 
                             try
                             {

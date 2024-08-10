@@ -1,7 +1,7 @@
 ﻿using Newtonsoft.Json;
 using System.IO;
 
-namespace iCourse
+namespace iCourse.Models
 {
     public class UserCredentials
     {
