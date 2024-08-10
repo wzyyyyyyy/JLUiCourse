@@ -1,6 +1,10 @@
-﻿using System.IO;
+﻿using iCourse.Views;
+using System;
+using System.IO;
 using System.Windows;
 using System.Windows.Threading;
+using iCourse.Helpers;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace iCourse
 {
@@ -9,6 +13,8 @@ namespace iCourse
     /// </summary>
     public partial class App : Application
     {
+        public static IServiceProvider ServiceProvider { get; private set; }
+
         private void Application_Startup(object sender, StartupEventArgs e)
         {
             // 捕获UI线程未处理的异常
@@ -16,6 +22,23 @@ namespace iCourse
 
             // 捕获非UI线程未处理的异常
             AppDomain.CurrentDomain.UnhandledException += UnhandledExceptionHandler;
+
+            var serviceCollection = new ServiceCollection();
+            ConfigureServices(serviceCollection);
+            ServiceProvider = serviceCollection.BuildServiceProvider();
+
+            var _event = ServiceProvider.GetService<Event>();
+            _event.RegisterEvents();
+
+            var mainWindow = ServiceProvider.GetService<MainWindow>();
+            mainWindow.Show();
+        }
+
+        private void ConfigureServices(IServiceCollection services)
+        {
+            services.AddSingleton<Logger>();
+            services.AddSingleton<MainWindow>();
+            services.AddSingleton<Event>();
         }
 
         private void Application_Exit(object sender, ExitEventArgs e)

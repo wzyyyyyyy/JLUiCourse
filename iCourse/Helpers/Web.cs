@@ -6,19 +6,25 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Windows;
+using CommunityToolkit.Mvvm.Messaging;
+using iCourse.Messages;
+using iCourse.ViewModels;
+using iCourse.Views;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace iCourse.Helpers
 {
     public class Web(string username, string password)
     {
         private Http client;
+        private Logger Logger => App.ServiceProvider.GetService<Logger>();
 
         private string aesKey;
         private string uuid;
-        private static string Captcha => ViewModels.CaptchaWindow.Captcha;
         private string token;
         private JObject loginResponse;
         private BatchInfo batch;
+        private string Captcha;
 
         private async Task InitializeClientAsync()
         {
@@ -63,15 +69,14 @@ namespace iCourse.Helpers
             client = new Http(TimeSpan.FromSeconds(5));
 
             await InitializeClientAsync();
-
             var captchaImage = await FetchCaptchaAsync();
-            await DisplayCaptchaAsync(captchaImage);
+            ShowCaptchaWindow(captchaImage);
 
             var (code, msg) = await AttemptLoginAsync();
 
             if (msg == "验证码错误")
             {
-                ViewModels.MainWindow.Instance.WriteLine(msg);
+                Logger.WriteLine(msg);
                 (code, msg) = await LoginAsync();
             }
 
@@ -122,13 +127,9 @@ namespace iCourse.Helpers
             return response;
         }
 
-        private static async Task DisplayCaptchaAsync(string base64Image)
+        private static void ShowCaptchaWindow(string base64Image)
         {
-            await ViewModels.MainWindow.Instance.Dispatcher.InvokeAsync(() =>
-            {
-                var captchaWindow = new ViewModels.CaptchaWindow(base64Image);
-                captchaWindow.ShowDialog();
-            });
+            WeakReferenceMessenger.Default.Send<ShowWindowMessage>(new ShowWindowMessage(typeof(CaptchaWindowViewModel),base64Image));
         }
 
         public JObject GetLoginResponse()
@@ -168,15 +169,15 @@ namespace iCourse.Helpers
                 {"batchId", batch.batchId}
             }));
             var json = JObject.Parse(response);
-            if (json["code"].ToObject<int>() == 200)
-            {
-                ViewModels.MainWindow.Instance.WriteLine("选课批次设置成功");
-                ViewModels.MainWindow.Instance.WriteLine("已选批次:" + batch.batchName);
-            }
-            else
-            {
-                ViewModels.MainWindow.Instance.WriteLine(json["msg"].ToString());
-            }
+            //if (json["code"].ToObject<int>() == 200)
+            //{
+            //    ViewModels.MainWindow.Instance.WriteLine("选课批次设置成功");
+            //    ViewModels.MainWindow.Instance.WriteLine("已选批次:" + batch.batchName);
+            //}
+            //else
+            //{
+            //    ViewModels.MainWindow.Instance.WriteLine(json["msg"].ToString());
+            //}
 
             client.SetReferer("https://icourses.jlu.edu.cn/xsxk/profile/index.html");
 
@@ -208,10 +209,10 @@ namespace iCourse.Helpers
             }
             else
             {
-                ViewModels.MainWindow.Instance.WriteLine(json["msg"].ToString());
+                Logger.WriteLine(json["msg"].ToString());
             }
 
-            ViewModels.MainWindow.Instance.WriteLine("收藏中的课程:\n" + string.Join("\n", coursesList.Select(c => c.courseName)));
+            Logger.WriteLine("收藏中的课程:\n" + string.Join("\n", coursesList.Select(c => c.courseName)));
             return coursesList;
         }
 
@@ -232,7 +233,7 @@ namespace iCourse.Helpers
 
                 if (code == 200)
                 {
-                    ViewModels.MainWindow.Instance.WriteLine("已选课程:" + courseInfo.courseName);
+                    Logger.WriteLine("已选课程:" + courseInfo.courseName);
                     return (true, null);
                 }
                 else
@@ -240,20 +241,20 @@ namespace iCourse.Helpers
                     var msg = json["msg"].ToString();
                     if (msg == "该课程已在选课结果中")
                     {
-                        ViewModels.MainWindow.Instance.WriteLine(courseInfo.courseName + " : " + msg);
-                        ViewModels.MainWindow.Instance.WriteLine(courseInfo.courseName + " : 已放弃,尝试选下一门课程");
+                        Logger.WriteLine(courseInfo.courseName + " : " + msg);
+                        Logger.WriteLine(courseInfo.courseName + " : 已放弃,尝试选下一门课程");
                         return (true, null);
                     }
 
                     if (msg == "课容量已满")
                     {
-                        ViewModels.MainWindow.Instance.WriteLine(courseInfo.courseName + " : " + msg);
-                        ViewModels.MainWindow.Instance.WriteLine(courseInfo.courseName + " : 已放弃,尝试选下一门课程");
+                        Logger.WriteLine(courseInfo.courseName + " : " + msg);
+                        Logger.WriteLine(courseInfo.courseName + " : 已放弃,尝试选下一门课程");
                         return (false, msg);
                     }
 
-                    ViewModels.MainWindow.Instance.WriteLine(courseInfo.courseName + " : 选课失败,原因：" + msg);
-                    ViewModels.MainWindow.Instance.WriteLine(courseInfo.courseName + " : 重新尝试...");
+                    Logger.WriteLine(courseInfo.courseName + " : 选课失败,原因：" + msg);
+                    Logger.WriteLine(courseInfo.courseName + " : 重新尝试...");
                     await Task.Delay(200 + new Random().Next(0, 200));
                 }
             }

@@ -1,31 +1,29 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Windows.Input;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
 using iCourse.Helpers;
-using System.Windows.Media.Imaging;
 using System.IO;
+using System.Windows.Media.Imaging;
+using iCourse.Messages;
 
 namespace iCourse.ViewModels
 {
     partial class CaptchaWindowViewModel : ObservableObject
     {
-        [ObservableProperty] 
+        [ObservableProperty]
         private string captcha;
 
         [ObservableProperty]
         private BitmapImage imageSource;
 
-        public ICommand CloseCommand { get; }
-
         public CaptchaWindowViewModel()
         {
-            CloseCommand = new RelayCommand(CloseWindow);
+
+        }
+
+        public CaptchaWindowViewModel(string base64Image)
+        {
+            LoadCaptchaImage(base64Image);
         }
 
         private void LoadCaptchaImage(string base64Image)
@@ -40,9 +38,10 @@ namespace iCourse.ViewModels
             ImageSource = bitmap;
         }
 
+        [RelayCommand]
         private void CloseWindow()
         {
-            WeakReferenceMessenger.Default.Send<CloseWindowMessage>();
+            WeakReferenceMessenger.Default.Send<CloseWindowMessage>(new CloseWindowMessage(typeof(CaptchaWindowViewModel)));
         }
     }
 }

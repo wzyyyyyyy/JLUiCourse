@@ -1,11 +1,7 @@
-﻿using System.Collections.ObjectModel;
-using System.ComponentModel;
-using System.IO;
+﻿using System.IO;
 using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Input;
-using iCourse.Helpers;
-using iCourse.Models;
+using CommunityToolkit.Mvvm.Messaging;
+using iCourse.Messages;
 using iCourse.ViewModels;
 
 namespace iCourse.Views
@@ -14,11 +10,11 @@ namespace iCourse.Views
     {
         public MainWindow()
         {
-            ShowDisclaimer();
+            ShowDisclaimerWindow();
             InitializeComponent();
         }
 
-        private void ShowDisclaimer()
+        private void ShowDisclaimerWindow()
         {
             if (File.Exists(".noshow"))
             {
@@ -28,10 +24,6 @@ namespace iCourse.Views
             var disclaimerWindow = new DisclaimerWindow();
             disclaimerWindow.ShowDialog();
 
-            if (!disclaimerWindow.IsAgreed)
-            {
-                throw new Exception("Disclaimer not agreed.");
-            }
         }
     }
 }

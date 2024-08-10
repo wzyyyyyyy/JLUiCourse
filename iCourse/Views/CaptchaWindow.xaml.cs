@@ -1,9 +1,9 @@
-﻿using CommunityToolkit.Mvvm.ComponentModel;
-using System.IO;
-using System.Windows;
-using System.Windows.Media.Imaging;
+﻿using System.CodeDom;
 using CommunityToolkit.Mvvm.Messaging;
 using iCourse.Helpers;
+using System.Windows;
+using iCourse.Messages;
+using iCourse.ViewModels;
 
 namespace iCourse.Views
 {
@@ -15,12 +15,16 @@ namespace iCourse.Views
         public CaptchaWindow(string base64Image)
         {
             InitializeComponent();
+            DataContext = new CaptchaWindowViewModel(base64Image);
             WeakReferenceMessenger.Default.Register<CloseWindowMessage>(this, CloseWindow);
         }
 
-        private void CloseWindow(object recipient,CloseWindowMessage msg)
+        private void CloseWindow(object recipient, CloseWindowMessage msg)
         {
-            this.Close();
+            if (msg.ViewModelType == typeof(CaptchaWindowViewModel))
+            {
+                this.Close();
+            }
         }
     }
 }
