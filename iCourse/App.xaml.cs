@@ -43,10 +43,10 @@ namespace iCourse
 
         private void LogException(Exception exception)
         {
-            string timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
-            string logFileName = $"error_{timestamp}.log";
-            string logFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, logFileName);
-            string errorMessage = $"[{DateTime.Now}] {exception.ToString()}\n";
+            var timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
+            var logFileName = $"error_{timestamp}.log";
+            var logFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, logFileName);
+            var errorMessage = $"[{DateTime.Now}] {exception.ToString()}\n";
 
             // 写入日志文件
             File.AppendAllText(logFilePath, errorMessage);

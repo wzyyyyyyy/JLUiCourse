@@ -1,7 +1,8 @@
 ﻿using System.Windows;
 using System.Windows.Controls;
+using iCourse.Models;
 
-namespace iCourse
+namespace iCourse.Views
 {
     /// <summary>
     /// SelectBatchWindow.xaml 的交互逻辑
