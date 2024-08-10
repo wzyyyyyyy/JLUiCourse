@@ -35,7 +35,7 @@
 
         <!-- 验证码图片 -->
         <Image  Height="80" 
-               Margin="30,10,0,0" 
+               Margin="15,5,15,5" 
                Grid.Row="1" 
                Grid.ColumnSpan="2" 
                Grid.Column="0" 
@@ -53,7 +53,7 @@
                  Grid.Column="0">
             <TextBox.InputBindings>
                 <KeyBinding Key="Enter"
-                            Command="{Binding CloseCommand}"/>
+                            Command="{Binding CloseWindowCommand}"/>
             </TextBox.InputBindings>
         </TextBox>
 
@@ -64,7 +64,7 @@
                 Background="#FF383838" 
                 Foreground="White" 
                 Margin="10,10,0,0"
-                Command="{Binding CloseCommand}"
+                Command="{Binding CloseWindowCommand}"
                 Grid.Row="2" 
                 Grid.Column="1"/>
     </Grid>

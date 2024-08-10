@@ -7,7 +7,7 @@
         mc:Ignorable="d"
         Title="iCourse" Height="375" Width="600" WindowStartupLocation="CenterScreen">
     <Window.DataContext>
-        <vm:MainWindowViewModel/>
+        <vm:MainWindowViewModel IsActive="True"/>
     </Window.DataContext>
     <Grid Background="#1F1F1F" Height="365" VerticalAlignment="Top">
         <Grid.RowDefinitions>
@@ -40,7 +40,7 @@
                  FontSize="14" 
                  Height="28" 
                  Grid.Column="1"
-                 Text="{Binding Username }"/>
+                 Text="{Binding Username, Mode = TwoWay}"/>
 
         <!-- Password Label and PasswordBox -->
         <TextBlock Grid.Row="1" 
@@ -51,7 +51,7 @@
                    Grid.Column="1">
             密码:
         </TextBlock>
-        <PasswordBox  Grid.Row="1" 
+        <TextBox  Grid.Row="1" 
                       Margin="9,167,0,0" 
                       VerticalAlignment="Top" 
                       Background="#2E2E2E" 
@@ -61,7 +61,7 @@
                       Grid.Column="1" 
                       HorizontalAlignment="Left" 
                       Width="121"
-                      Password="{Binding Password}"/>
+                      Text="{Binding Password, Mode = TwoWay}"/>
 
         <!-- Auto-Login Checkbox -->
         <CheckBox  Content="自动登录" 
@@ -73,7 +73,7 @@
                    Grid.Column="1" 
                    Height="24" 
                    RenderTransformOrigin="0.444,2.128" 
-                   IsChecked="{Binding AutoLogin}"/>
+                   IsChecked="{Binding AutoLogin, Mode = TwoWay}"/>
         <CheckBox  Content="自动选择批次" 
                    Grid.Row="3" 
                    Margin="10,10,0,0" 
@@ -82,7 +82,7 @@
                    FontSize="14" 
                    Grid.Column="1" 
                    Height="24"
-                   IsChecked="{Binding AutoSelectBatch}"/>
+                   IsChecked="{Binding AutoSelectBatch, Mode = TwoWay}"/>
         <!-- Login Button -->
         <Button Grid.Row="3" 
                 Content="登录"
@@ -95,6 +95,7 @@
                 RenderTransformOrigin="0.71,0.406"
                 Grid.Column="1" 
                 HorizontalAlignment="Left"
+                Command="{Binding LoginCommand}"
                 />
 
         <!-- Console Output -->

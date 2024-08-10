@@ -1,31 +1,25 @@
-﻿using System.IO;
+﻿using CommunityToolkit.Mvvm.Messaging;
+using iCourse.Helpers;
 using System.Windows;
+using iCourse.Messages;
+using iCourse.ViewModels;
 
 namespace iCourse.Views
 {
     public partial class DisclaimerWindow : Window
     {
-        public bool IsAgreed { get; private set; }
-
         public DisclaimerWindow()
         {
             InitializeComponent();
-            IsAgreed = false;
+            WeakReferenceMessenger.Default.Register<CloseWindowMessage>(this, CloseWindow);
         }
 
-        private void AgreeButton_Click(object sender, RoutedEventArgs e)
+        private void CloseWindow(object recipient, CloseWindowMessage msg)
         {
-            IsAgreed = true;
-            if (NoShowCheckBox.IsChecked ?? false)
+            if (msg.ViewModelType == typeof(DisclaimerViewModel))
             {
-                File.Create(".noshow");
+                this.Close();
             }
-            this.Close();
-        }
-
-        private void DeclineButton_Click(object sender, RoutedEventArgs e)
-        {
-            Application.Current.Shutdown();
         }
     }
 }

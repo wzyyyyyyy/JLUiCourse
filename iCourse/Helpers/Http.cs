@@ -1,16 +1,22 @@
 ﻿using Polly;
 using Polly.Retry;
 using System.Net.Http;
-using System.Threading.Tasks;
+using System.Net.Security;
+using System.Security.Cryptography.X509Certificates;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace iCourse.Helpers
 {
     class Http : HttpClient
     {
         private readonly AsyncRetryPolicy retryPolicy;
-
+        private Logger Logger => App.ServiceProvider.GetService<Logger>();
         public Http(TimeSpan timeout)
-            : base(new HttpClientHandler { UseCookies = true })
+            : base(new HttpClientHandler
+            {
+                UseCookies = true,
+                ServerCertificateCustomValidationCallback = (HttpRequestMessage request, X509Certificate2 certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors) => true
+            })
         {
             Timeout = timeout;
             BaseAddress = new Uri("https://icourses.jlu.edu.cn");
@@ -26,12 +32,12 @@ namespace iCourse.Helpers
                     retryAttempt =>
                     {
                         var waitTime = TimeSpan.FromMilliseconds(Math.Pow(2, Math.Min(retryAttempt, 8))); // 上限为256ms
-                        Views.MainWindow.Instance.WriteLine($"重试第 {retryAttempt} 次，等待时间 {waitTime.TotalSeconds} 秒");
+                        Logger.WriteLine($"重试第 {retryAttempt} 次，等待时间 {waitTime.TotalSeconds} 秒");
                         return waitTime;
                     },
                     onRetry: (exception, timeSpan) =>
                     {
-                        Views.MainWindow.Instance.WriteLine(exception is TaskCanceledException
+                        Logger.WriteLine(exception is TaskCanceledException
                             ? $"重试超时，等待 {timeSpan.TotalSeconds} 秒后重试。"
                             : $"发生异常：{exception.Message}，等待 {timeSpan.TotalSeconds} 秒后重试。");
                     });

@@ -1,26 +1,26 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using CommunityToolkit.Mvvm.Messaging.Messages;
 using CommunityToolkit.Mvvm.Messaging;
+using CommunityToolkit.Mvvm.Messaging.Messages;
 using iCourse.Helpers;
+using iCourse.Messages;
 using iCourse.Models;
 using iCourse.Views;
 using System.Collections.ObjectModel;
-using System.IO;
-using System.Threading.Tasks;
 using System.Windows;
-using Microsoft.VisualBasic;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace iCourse.ViewModels
 {
-    partial class MainWindowViewModel : 
-        ObservableObject,
-        IRecipient<PropertyChangedMessage<string>>
+    partial class MainWindowViewModel :
+        ObservableRecipient,
+        IRecipient<PropertyChangedMessage<string>>,
+        IRecipient<PropertyChangedMessage<bool>>
     {
         private Web web;
         private bool isLogged;
-
-        public ObservableCollection<string> LogMessages { get; } = new();
+        private Logger Logger => App.ServiceProvider.GetService<Logger>();
+        public ObservableCollection<string> LogMessages => Logger.LogMessages;
 
         [ObservableProperty]
         [NotifyPropertyChangedRecipients]
@@ -48,11 +48,13 @@ namespace iCourse.ViewModels
                 AutoLogin = credentials.AutoLogin;
                 AutoSelectBatch = credentials.AutoSelectBatch;
 
-                if (AutoLogin)
+                if (AutoLogin && Username.Length != 0 && Password.Length != 0)
                 {
                     _ = LoginAsync();
                 }
             }
+
+            WeakReferenceMessenger.Default.Register<StartSelectClassMessage>(this, StartSelectClassAsync);
         }
 
         [RelayCommand]
@@ -60,7 +62,7 @@ namespace iCourse.ViewModels
         {
             if (isLogged)
             {
-                WriteLine("请勿重复登录！");
+                Logger.WriteLine("请勿重复登录！");
                 return;
             }
 
@@ -71,32 +73,31 @@ namespace iCourse.ViewModels
 
             if (code != 200)
             {
-                WriteLine(msg);
-                WriteLine("登录失败，请检查用户名和密码是否正确。");
+                Logger.WriteLine(msg);
+                Logger.WriteLine("登录失败，请检查用户名和密码是否正确。");
                 isLogged = false;
                 return;
             }
 
-            WriteLine(msg);
+            Logger.WriteLine(msg);
             isLogged = true;
 
             var studentName = response["data"]["student"]["XM"].ToString();
             var studentID = response["data"]["student"]["XH"].ToString();
             var collage = response["data"]["student"]["YXMC"].ToString();
 
-            WriteLine($"姓名：{studentName}");
-            WriteLine($"学号：{studentID}");
-            WriteLine($"学院：{collage}");
+            Logger.WriteLine($"姓名：{studentName}");
+            Logger.WriteLine($"学号：{studentID}");
+            Logger.WriteLine($"学院：{collage}");
 
             var batchInfos = web.GetBatchInfo();
             var selectBatchWindow = new SelectBatchWindow(batchInfos);
             selectBatchWindow.ShowDialog();
         }
 
-        [RelayCommand]
-        private async Task StartSelectClassAsync(BatchInfo batch)
+        private async void StartSelectClassAsync(object recipient, StartSelectClassMessage msg)
         {
-            await web.SetBatchIdAsync(batch);
+            await web.SetBatchIdAsync(msg.BatchInfo);
             var list = await web.GetFavoriteCoursesAsync();
             web.KeepOnline();
 
@@ -108,40 +109,42 @@ namespace iCourse.ViewModels
 
             var results = await Task.WhenAll(tasks);
 
-            WriteLine("选课完成!");
+            Logger.WriteLine("选课完成!");
 
             var failedCourses = results.Where(result => !result.isSuccess).ToList();
             var successfulCount = results.Count(result => result.isSuccess);
 
             foreach (var result in failedCourses)
             {
-                WriteLine($"课程选择失败: {result.courseName}, 原因: {result.msg}");
+                Logger.WriteLine($"课程选择失败: {result.courseName}, 原因: {result.msg}");
             }
 
-            WriteLine($"选择成功课程的数目: {successfulCount}");
-        }
-
-        private void WriteLine<T>(T msg)
-        {
-            var time = DateTime.Now.ToString("HH:mm:ss");
-            var logMessage = $"[{time}] : {msg}";
-
-            App.Current.Dispatcher.Invoke(() =>
-            {
-                LogMessages.Add(logMessage);
-            });
+            Logger.WriteLine($"选择成功课程的数目: {successfulCount}");
         }
 
         public void Receive(PropertyChangedMessage<string> message)
         {
-            if (message.Sender is MainWindowViewModel vm)
+            if (message.Sender is MainWindowViewModel)
             {
                 SaveCredentials();
             }
         }
 
+        public void Receive(PropertyChangedMessage<bool> message)
+        {
+            var credentials = new UserCredentials
+            {
+                Username = Username,
+                Password = Password,
+                AutoLogin = AutoLogin,
+                AutoSelectBatch = AutoSelectBatch
+            };
+            credentials.Save();
+        }
+
         public void SaveCredentials()
         {
+            if (!AutoLogin) { return; }
             var credentials = new UserCredentials
             {
                 Username = Username,
