@@ -1,6 +1,8 @@
 ﻿using Polly;
 using Polly.Retry;
 using System.Net.Http;
+using System.Net.Security;
+using System.Security.Cryptography.X509Certificates;
 using System.Threading.Tasks;
 
 namespace iCourse
@@ -10,7 +12,10 @@ namespace iCourse
         private readonly AsyncRetryPolicy _retryPolicy;
 
         public Http(TimeSpan timeout)
-            : base(new HttpClientHandler { UseCookies = true })
+            : base(new HttpClientHandler { 
+                UseCookies = true,
+                ServerCertificateCustomValidationCallback = (HttpRequestMessage request, X509Certificate2 certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors) => true
+            })
         {
             Timeout = timeout;
             BaseAddress = new Uri("https://icourses.jlu.edu.cn");
