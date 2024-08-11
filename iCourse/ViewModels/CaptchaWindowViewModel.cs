@@ -41,6 +41,7 @@ namespace iCourse.ViewModels
         [RelayCommand]
         private void CloseWindow()
         {
+            WeakReferenceMessenger.Default.Send<AttemptLoginMessage>(new AttemptLoginMessage(Captcha));
             WeakReferenceMessenger.Default.Send<CloseWindowMessage>(new CloseWindowMessage(typeof(CaptchaWindowViewModel)));
         }
     }

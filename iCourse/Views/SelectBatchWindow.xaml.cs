@@ -12,6 +12,7 @@ namespace iCourse.Views
         public SelectBatchWindow(List<BatchInfo> batchList)
         {
             InitializeComponent();
+
             var viewModel = new SelectBatchViewModel(batchList);
             DataContext = viewModel;
 

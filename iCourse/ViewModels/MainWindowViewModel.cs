@@ -17,8 +17,9 @@ namespace iCourse.ViewModels
         IRecipient<PropertyChangedMessage<string>>,
         IRecipient<PropertyChangedMessage<bool>>
     {
-        private Web web;
-        private bool isLogged;
+        [ObservableProperty]
+        private bool canLogin = true;
+
         private Logger Logger => App.ServiceProvider.GetService<Logger>();
         public ObservableCollection<string> LogMessages => Logger.LogMessages;
 
@@ -50,76 +51,22 @@ namespace iCourse.ViewModels
 
                 if (AutoLogin && Username.Length != 0 && Password.Length != 0)
                 {
-                    _ = LoginAsync();
+                    Login();
                 }
             }
 
-            WeakReferenceMessenger.Default.Register<StartSelectClassMessage>(this, StartSelectClassAsync);
+            WeakReferenceMessenger.Default.Register<LoginSuccessMessage>(this, LoginSuccess);
         }
 
         [RelayCommand]
-        private async Task LoginAsync()
+        private void Login()
         {
-            if (isLogged)
-            {
-                Logger.WriteLine("请勿重复登录！");
-                return;
-            }
-
-            web = new Web(Username, Password);
-
-            var (code, msg) = await web.LoginAsync();
-            var response = web.GetLoginResponse();
-
-            if (code != 200)
-            {
-                Logger.WriteLine(msg);
-                Logger.WriteLine("登录失败，请检查用户名和密码是否正确。");
-                isLogged = false;
-                return;
-            }
-
-            Logger.WriteLine(msg);
-            isLogged = true;
-
-            var studentName = response["data"]["student"]["XM"].ToString();
-            var studentID = response["data"]["student"]["XH"].ToString();
-            var collage = response["data"]["student"]["YXMC"].ToString();
-
-            Logger.WriteLine($"姓名：{studentName}");
-            Logger.WriteLine($"学号：{studentID}");
-            Logger.WriteLine($"学院：{collage}");
-
-            var batchInfos = web.GetBatchInfo();
-            var selectBatchWindow = new SelectBatchWindow(batchInfos);
-            selectBatchWindow.ShowDialog();
+            _ = App.ServiceProvider.GetService<Web>().LoginAsync(Username, Password);
         }
 
-        private async void StartSelectClassAsync(object recipient, StartSelectClassMessage msg)
+        private void LoginSuccess(object recipient, LoginSuccessMessage message)
         {
-            await web.SetBatchIdAsync(msg.BatchInfo);
-            var list = await web.GetFavoriteCoursesAsync();
-            web.KeepOnline();
-
-            var tasks = list.Select(async course =>
-            {
-                var (isSuccess, msg) = await web.SelectCourseAsync(course);
-                return new { course.courseName, isSuccess, msg };
-            }).ToList();
-
-            var results = await Task.WhenAll(tasks);
-
-            Logger.WriteLine("选课完成!");
-
-            var failedCourses = results.Where(result => !result.isSuccess).ToList();
-            var successfulCount = results.Count(result => result.isSuccess);
-
-            foreach (var result in failedCourses)
-            {
-                Logger.WriteLine($"课程选择失败: {result.courseName}, 原因: {result.msg}");
-            }
-
-            Logger.WriteLine($"选择成功课程的数目: {successfulCount}");
+            CanLogin = false;
         }
 
         public void Receive(PropertyChangedMessage<string> message)

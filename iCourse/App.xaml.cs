@@ -39,6 +39,7 @@ namespace iCourse
             services.AddSingleton<Logger>();
             services.AddSingleton<MainWindow>();
             services.AddSingleton<Event>();
+            services.AddSingleton<Web>();
         }
 
         private void Application_Exit(object sender, ExitEventArgs e)

@@ -19,7 +19,7 @@ namespace iCourse.ViewModels
         public SelectBatchViewModel()
         {
             // Provide some default value or handle initialization without parameters
-            BatchList = new List<BatchInfo>();
+            BatchList = [];
         }
 
         public SelectBatchViewModel(List<BatchInfo> batchList)
@@ -36,8 +36,10 @@ namespace iCourse.ViewModels
                 return;
             }
 
-            var credentials = new UserCredentials();
-            credentials.LastBatchId = SelectedBatch.batchId;
+            var credentials = new UserCredentials
+            {
+                LastBatchId = SelectedBatch.batchId
+            };
             credentials.Save();
 
 

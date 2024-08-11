@@ -23,7 +23,6 @@ namespace iCourse.Views
 
             var disclaimerWindow = new DisclaimerWindow();
             disclaimerWindow.ShowDialog();
-
         }
     }
 }
