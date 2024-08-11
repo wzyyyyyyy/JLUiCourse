@@ -95,6 +95,7 @@
                 RenderTransformOrigin="0.71,0.406"
                 Grid.Column="1" 
                 HorizontalAlignment="Left"
+                IsEnabled="{Binding CanLogin}"
                 Command="{Binding LoginCommand}"
                 />
 

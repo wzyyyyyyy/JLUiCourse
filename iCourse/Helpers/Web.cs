@@ -14,73 +14,22 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace iCourse.Helpers
 {
-    public class Web(string username, string password)
+    public class Web
     {
         private Http client;
         private Logger Logger => App.ServiceProvider.GetService<Logger>();
 
+        private string username;
+        private string password;
         private string aesKey;
         private string uuid;
         private string token;
         private JObject loginResponse;
         private BatchInfo batch;
-        private string Captcha;
 
         private async Task InitializeClientAsync()
         {
             await RetrieveAesKeyAsync();
-            var encryptedBytes = EncryptWithAes(password, aesKey);
-            password = Convert.ToBase64String(encryptedBytes);
-        }
-
-        private async Task<string> FetchCaptchaAsync()
-        {
-            client.SetOrigin("https://icourses.jlu.edu.cn");
-            client.SetReferer("https://icourses.jlu.edu.cn/xsxk/profile/index.html");
-
-            const string captchaEndpoint = "xsxk/auth/captcha";
-
-            var result = await client.HttpPostAsync(captchaEndpoint, null);
-            var json = JObject.Parse(result);
-            uuid = json["data"]["uuid"].ToString();
-            var captchaImage = json["data"]["captcha"].ToString();
-            return captchaImage.Substring(captchaImage.IndexOf(",") + 1);
-        }
-
-        private async Task<(int code, string msg)> AttemptLoginAsync()
-        {
-            var response = await PostLoginAsync();
-            var json = JObject.Parse(response);
-            loginResponse = json;
-
-            var code = json["code"].ToObject<int>();
-            var msg = json["msg"].ToString();
-
-            if (code == 200 && json.ContainsKey("data"))
-            {
-                token = json["data"]["token"].ToString();
-            }
-
-            return (code, msg);
-        }
-
-        public async Task<(int code, string msg)> LoginAsync()
-        {
-            client = new Http(TimeSpan.FromSeconds(5));
-
-            await InitializeClientAsync();
-            var captchaImage = await FetchCaptchaAsync();
-            ShowCaptchaWindow(captchaImage);
-
-            var (code, msg) = await AttemptLoginAsync();
-
-            if (msg == "验证码错误")
-            {
-                Logger.WriteLine(msg);
-                (code, msg) = await LoginAsync();
-            }
-
-            return (code, msg);
         }
 
         private static byte[] EncryptWithAes(string plainText, string aesKey)
@@ -115,26 +64,103 @@ namespace iCourse.Helpers
             }
         }
 
-        private async Task<string> PostLoginAsync()
+        private async Task<string> FetchCaptchaAsync()
         {
+            client.SetOrigin("https://icourses.jlu.edu.cn");
+            client.SetReferer("https://icourses.jlu.edu.cn/xsxk/profile/index.html");
+
+            const string captchaEndpoint = "xsxk/auth/captcha";
+
+            var result = await client.HttpPostAsync(captchaEndpoint, null);
+            var json = JObject.Parse(result);
+            uuid = json["data"]["uuid"].ToString();
+            var captchaImage = json["data"]["captcha"].ToString();
+            return captchaImage.Substring(captchaImage.IndexOf(",") + 1);
+        }
+
+        private static void ShowCaptchaWindow(string base64Image)
+        {
+            WeakReferenceMessenger.Default.Send<ShowWindowMessage>(new ShowWindowMessage(typeof(CaptchaWindowViewModel), base64Image));
+        }
+
+        public async Task LoginAsync(string username_,string password_)
+        {
+            client = new Http(TimeSpan.FromSeconds(5));
+            username = username_;
+            password = password_;
+
+            await InitializeClientAsync();
+
+            var captchaImage = await FetchCaptchaAsync();
+
+            WeakReferenceMessenger.Default.Register<AttemptLoginMessage>(this, AttemptLoginAsync);
+
+            ShowCaptchaWindow(captchaImage);
+        }
+
+        private async Task<string> PostLoginAsync(string captcha)
+        {
+            var encryptedBytes = EncryptWithAes(password, aesKey);
+            var encryptedPassword = Convert.ToBase64String(encryptedBytes);
+
             var response = await client.HttpPostAsync("xsxk/auth/login", new FormUrlEncodedContent(new Dictionary<string, string>
             {
                 {"loginname", username},
-                {"password", password},
-                {"captcha", Captcha},
+                {"password", encryptedPassword},
+                {"captcha", captcha},
                 {"uuid", uuid}
             }));
             return response;
         }
 
-        private static void ShowCaptchaWindow(string base64Image)
+        private async void AttemptLoginAsync(object recipient, AttemptLoginMessage message)
         {
-            WeakReferenceMessenger.Default.Send<ShowWindowMessage>(new ShowWindowMessage(typeof(CaptchaWindowViewModel),base64Image));
+            WeakReferenceMessenger.Default.Unregister<AttemptLoginMessage>(this);
+
+            var response = await PostLoginAsync(message.Captcha);
+            var json = JObject.Parse(response);
+            loginResponse = json;
+
+            var code = json["code"].ToObject<int>();
+            var msg = json["msg"].ToString();
+
+            if (msg == "验证码错误")
+            {
+                Logger.WriteLine(msg);
+                _ = LoginAsync(username, password);
+                return;
+            }
+
+            if (code == 200 && json.ContainsKey("data"))
+            {
+                Logger.WriteLine(msg);
+
+                token = json["data"]["token"].ToString();
+
+                var studentName = json["data"]["student"]["XM"].ToString();
+                var studentId = json["data"]["student"]["XH"].ToString();
+                var collage = json["data"]["student"]["YXMC"].ToString();
+
+                Logger.WriteLine($"姓名：{studentName}");
+                Logger.WriteLine($"学号：{studentId}");
+                Logger.WriteLine($"学院：{collage}");
+
+                WeakReferenceMessenger.Default.Send<LoginSuccessMessage>(new LoginSuccessMessage());
+
+                ShowSelectBatchWindow();
+                return;
+            }
+
+            Logger.WriteLine($"错误:{code}, {msg}");
         }
 
-        public JObject GetLoginResponse()
+        private void ShowSelectBatchWindow()
         {
-            return loginResponse;
+            var batchInfos = GetBatchInfo();
+            WeakReferenceMessenger.Default.Send<ShowWindowMessage>(new ShowWindowMessage(typeof(SelectBatchViewModel),
+                batchInfos));
+
+            WeakReferenceMessenger.Default.Register<StartSelectClassMessage>(this,StartSelectClassAsync);
         }
 
         public List<BatchInfo> GetBatchInfo()
@@ -169,15 +195,15 @@ namespace iCourse.Helpers
                 {"batchId", batch.batchId}
             }));
             var json = JObject.Parse(response);
-            //if (json["code"].ToObject<int>() == 200)
-            //{
-            //    ViewModels.MainWindow.Instance.WriteLine("选课批次设置成功");
-            //    ViewModels.MainWindow.Instance.WriteLine("已选批次:" + batch.batchName);
-            //}
-            //else
-            //{
-            //    ViewModels.MainWindow.Instance.WriteLine(json["msg"].ToString());
-            //}
+            if (json["code"].ToObject<int>() == 200)
+            {
+                Logger.WriteLine("选课批次设置成功");
+                Logger.WriteLine("已选批次:" + batch.batchName);
+            }
+            else
+            {
+                Logger.WriteLine(json["msg"].ToString());
+            }
 
             client.SetReferer("https://icourses.jlu.edu.cn/xsxk/profile/index.html");
 
@@ -258,6 +284,33 @@ namespace iCourse.Helpers
                     await Task.Delay(200 + new Random().Next(0, 200));
                 }
             }
+        }
+
+        private async void StartSelectClassAsync(object recipient, StartSelectClassMessage msg)
+        {
+            await SetBatchIdAsync(msg.BatchInfo);
+            var list = await GetFavoriteCoursesAsync();
+            KeepOnline();
+
+            var tasks = list.Select(async course =>
+            {
+                var (isSuccess, msg) = await SelectCourseAsync(course);
+                return new { course.courseName, isSuccess, msg };
+            }).ToList();
+
+            var results = await Task.WhenAll(tasks);
+
+            Logger.WriteLine("选课完成!");
+
+            var failedCourses = results.Where(result => !result.isSuccess).ToList();
+            var successfulCount = results.Count(result => result.isSuccess);
+
+            foreach (var result in failedCourses)
+            {
+                Logger.WriteLine($"课程选择失败: {result.courseName}, 原因: {result.msg}");
+            }
+
+            Logger.WriteLine($"选择成功课程的数目: {successfulCount}");
         }
 
         public void KeepOnline()
