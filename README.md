@@ -5,7 +5,7 @@
 
 ### 1. 下载和安装
 
-在Action下载最新版本的软件，并确保安装了 [.Net8](https://dotnet.microsoft.com/zh-cn/download)。
+在 [Action](https://github.com/wzyyyyyyy/JLUiCourse/actions)或 [Release](https://github.com/wzyyyyyyy/JLUiCourse/releases)下载最新版本的软件(个人推荐用MVVM版本)，并确保安装了 [.Net8](https://dotnet.microsoft.com/zh-cn/download)。
 
 ### 2. 配置
 
