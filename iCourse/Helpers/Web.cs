@@ -216,27 +216,25 @@ namespace iCourse.Helpers
                     Logger.WriteLine("已选课程:" + courseInfo.courseName);
                     return (true, null);
                 }
-                else
+
+                var msg = json["msg"].ToString();
+                if (msg == "该课程已在选课结果中")
                 {
-                    var msg = json["msg"].ToString();
-                    if (msg == "该课程已在选课结果中")
-                    {
-                        Logger.WriteLine(courseInfo.courseName + " : " + msg);
-                        Logger.WriteLine(courseInfo.courseName + " : 已放弃,尝试选下一门课程");
-                        return (true, null);
-                    }
-
-                    if (msg == "课容量已满")
-                    {
-                        Logger.WriteLine(courseInfo.courseName + " : " + msg);
-                        Logger.WriteLine(courseInfo.courseName + " : 已放弃,尝试选下一门课程");
-                        return (false, msg);
-                    }
-
-                    Logger.WriteLine(courseInfo.courseName + " : 选课失败,原因：" + msg);
-                    Logger.WriteLine(courseInfo.courseName + " : 重新尝试...");
-                    await Task.Delay(200 + new Random().Next(0, 200));
+                    Logger.WriteLine(courseInfo.courseName + " : " + msg);
+                    Logger.WriteLine(courseInfo.courseName + " : 已放弃,尝试选下一门课程");
+                    return (true, null);
                 }
+
+                if (msg == "课容量已满")
+                {
+                    Logger.WriteLine(courseInfo.courseName + " : " + msg);
+                    Logger.WriteLine(courseInfo.courseName + " : 已放弃,尝试选下一门课程");
+                    return (false, msg);
+                }
+
+                Logger.WriteLine(courseInfo.courseName + " : 选课失败,原因：" + msg);
+                Logger.WriteLine(courseInfo.courseName + " : 重新尝试...");
+                await Task.Delay(200 + new Random().Next(0, 200));
             }
         }
 
@@ -246,9 +244,17 @@ namespace iCourse.Helpers
             var list = await GetFavoriteCoursesAsync();
             KeepOnline();
 
+            int totalTasks = list.Count;
+            int completedTasks = 0;
+
             var tasks = list.Select(async course =>
             {
                 var (isSuccess, msg) = await SelectCourseAsync(course);
+
+                
+                int currentCompleted = Interlocked.Increment(ref completedTasks);
+                WeakReferenceMessenger.Default.Send<SelectCourseFinishedMessage>(new SelectCourseFinishedMessage(currentCompleted, totalTasks));
+
                 return new { course.courseName, isSuccess, msg };
             }).ToList();
 

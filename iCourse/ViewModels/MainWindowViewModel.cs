@@ -7,6 +7,8 @@ using iCourse.Messages;
 using iCourse.Models;
 using Microsoft.Extensions.DependencyInjection;
 using System.Collections.ObjectModel;
+using HandyControl.Controls;
+using System.Windows;
 
 namespace iCourse.ViewModels
 {
@@ -17,6 +19,11 @@ namespace iCourse.ViewModels
     {
         [ObservableProperty]
         private bool canLogin = true;
+
+        [ObservableProperty]
+        private double progressValue;
+        [ObservableProperty]
+        private Visibility progressBarVisibility = Visibility.Hidden;
 
         private Logger Logger => App.ServiceProvider.GetService<Logger>();
         public ObservableCollection<string> LogMessages => Logger.LogMessages;
@@ -53,16 +60,8 @@ namespace iCourse.ViewModels
                 }
             }
 
-            Task.Run(async () =>
-            {
-                for (int i = 0; i < 100000; i++)
-                {
-                    await Task.Delay(100);
-                    Logger.WriteLine($"test{i}");
-                }
-            });
-
             WeakReferenceMessenger.Default.Register<LoginSuccessMessage>(this, LoginSuccess);
+            WeakReferenceMessenger.Default.Register<SelectCourseFinishedMessage>(this, SelectCourseFinished);
         }
 
         [RelayCommand]
@@ -74,6 +73,12 @@ namespace iCourse.ViewModels
         private void LoginSuccess(object recipient, LoginSuccessMessage message)
         {
             CanLogin = false;
+        }
+
+        private void SelectCourseFinished(object recipient, SelectCourseFinishedMessage message)
+        {
+            if (ProgressBarVisibility != Visibility.Visible) ProgressBarVisibility = Visibility.Visible;
+            ProgressValue = ((double)message.FinishedNum / message.Total)*100;
         }
 
         public void Receive(PropertyChangedMessage<string> message)
