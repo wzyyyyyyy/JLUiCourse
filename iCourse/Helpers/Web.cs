@@ -1,4 +1,8 @@
-﻿using iCourse.Models;
+﻿using CommunityToolkit.Mvvm.Messaging;
+using iCourse.Messages;
+using iCourse.Models;
+using iCourse.ViewModels;
+using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json.Linq;
 using System.Diagnostics;
 using System.Net.Http;
@@ -6,11 +10,6 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Windows;
-using CommunityToolkit.Mvvm.Messaging;
-using iCourse.Messages;
-using iCourse.ViewModels;
-using iCourse.Views;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace iCourse.Helpers
 {
@@ -83,7 +82,7 @@ namespace iCourse.Helpers
             WeakReferenceMessenger.Default.Send<ShowWindowMessage>(new ShowWindowMessage(typeof(CaptchaWindowViewModel), base64Image));
         }
 
-        public async Task LoginAsync(string username_,string password_)
+        public async Task LoginAsync(string username_, string password_)
         {
             client = new Http(TimeSpan.FromSeconds(5));
             username = username_;
@@ -160,7 +159,7 @@ namespace iCourse.Helpers
             WeakReferenceMessenger.Default.Send<ShowWindowMessage>(new ShowWindowMessage(typeof(SelectBatchViewModel),
                 batchInfos));
 
-            WeakReferenceMessenger.Default.Register<StartSelectClassMessage>(this,StartSelectClassAsync);
+            WeakReferenceMessenger.Default.Register<StartSelectClassMessage>(this, StartSelectClassAsync);
         }
 
         public List<BatchInfo> GetBatchInfo()

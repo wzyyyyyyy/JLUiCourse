@@ -1,9 +1,8 @@
 ﻿using CommunityToolkit.Mvvm.Messaging;
-using iCourse.Helpers;
+using iCourse.Messages;
 using iCourse.Models;
 using iCourse.ViewModels;
 using System.Windows;
-using iCourse.Messages;
 
 namespace iCourse.Views
 {

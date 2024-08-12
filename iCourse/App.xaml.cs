@@ -1,10 +1,9 @@
-﻿using iCourse.Views;
-using System;
+﻿using iCourse.Helpers;
+using iCourse.Views;
+using Microsoft.Extensions.DependencyInjection;
 using System.IO;
 using System.Windows;
 using System.Windows.Threading;
-using iCourse.Helpers;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace iCourse
 {

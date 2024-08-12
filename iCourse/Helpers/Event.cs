@@ -3,12 +3,6 @@ using iCourse.Messages;
 using iCourse.Models;
 using iCourse.ViewModels;
 using iCourse.Views;
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace iCourse.Helpers
 {
@@ -34,7 +28,7 @@ namespace iCourse.Helpers
                 var selectBatchWindow = new SelectBatchWindow(batchInfos);
                 selectBatchWindow.ShowDialog();
             }
-            
+
         }
-    } 
+    }
 }
