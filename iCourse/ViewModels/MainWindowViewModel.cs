@@ -9,6 +9,7 @@ using Microsoft.Extensions.DependencyInjection;
 using System.Collections.ObjectModel;
 using HandyControl.Controls;
 using System.Windows;
+using MessageBox = System.Windows.MessageBox;
 
 namespace iCourse.ViewModels
 {
@@ -67,6 +68,12 @@ namespace iCourse.ViewModels
         [RelayCommand]
         private void Login()
         {
+            if (string.IsNullOrEmpty(Username) || string.IsNullOrEmpty(Password))
+            {
+                MessageBox.Show("请输入账号或密码!");
+                return;
+            }
+
             _ = App.ServiceProvider.GetService<Web>().LoginAsync(Username, Password);
         }
 
