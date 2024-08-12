@@ -6,9 +6,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json.Linq;
 using System.Diagnostics;
 using System.Net.Http;
-using System.Security.Cryptography;
-using System.Text;
-using System.Text.RegularExpressions;
 using System.Windows;
 
 namespace iCourse.Helpers
@@ -20,48 +17,10 @@ namespace iCourse.Helpers
 
         private string username;
         private string password;
-        private string aesKey;
         private string uuid;
         private string token;
         private JObject loginResponse;
         private BatchInfo batch;
-
-        private async Task InitializeClientAsync()
-        {
-            await RetrieveAesKeyAsync();
-        }
-
-        private static byte[] EncryptWithAes(string plainText, string aesKey)
-        {
-            var keyBytes = Encoding.UTF8.GetBytes(aesKey);
-
-            using var aesAlg = Aes.Create();
-            aesAlg.Key = keyBytes;
-            aesAlg.Mode = CipherMode.ECB;
-            aesAlg.Padding = PaddingMode.PKCS7;
-
-            var encryptor = aesAlg.CreateEncryptor(aesAlg.Key, aesAlg.IV);
-
-            var plainBytes = Encoding.UTF8.GetBytes(plainText);
-
-            var encryptedBytes = encryptor.TransformFinalBlock(plainBytes, 0, plainBytes.Length);
-
-            return encryptedBytes;
-        }
-
-        private async Task RetrieveAesKeyAsync()
-        {
-            var response = await client.HttpGetAsync("");
-            var match = Regex.Match(response, "loginVue\\.loginForm\\.aesKey\\s*=\\s*\"([^\"]+)\"");
-            if (match.Success)
-            {
-                aesKey = match.Groups[1].Value;
-            }
-            else
-            {
-                throw new InvalidOperationException("AES key not found in content.");
-            }
-        }
 
         private async Task<string> FetchCaptchaAsync()
         {
@@ -74,7 +33,7 @@ namespace iCourse.Helpers
             var json = JObject.Parse(result);
             uuid = json["data"]["uuid"].ToString();
             var captchaImage = json["data"]["captcha"].ToString();
-            return captchaImage.Substring(captchaImage.IndexOf(",") + 1);
+            return captchaImage.Substring(captchaImage.IndexOf(",", StringComparison.Ordinal) + 1);
         }
 
         private static void ShowCaptchaWindow(string base64Image)
@@ -88,8 +47,6 @@ namespace iCourse.Helpers
             username = username_;
             password = password_;
 
-            await InitializeClientAsync();
-
             var captchaImage = await FetchCaptchaAsync();
 
             WeakReferenceMessenger.Default.Register<AttemptLoginMessage>(this, AttemptLoginAsync);
@@ -99,9 +56,7 @@ namespace iCourse.Helpers
 
         private async Task<string> PostLoginAsync(string captcha)
         {
-            var encryptedBytes = EncryptWithAes(password, aesKey);
-            var encryptedPassword = Convert.ToBase64String(encryptedBytes);
-
+            var encryptedPassword = await new EncryptHelper(client).EncryptWithAesAsync(password);
             var response = await client.HttpPostAsync("xsxk/auth/login", new FormUrlEncodedContent(new Dictionary<string, string>
             {
                 {"loginname", username},

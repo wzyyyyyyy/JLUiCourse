@@ -73,7 +73,7 @@ namespace iCourse.Helpers
             });
         }
 
-        public async Task<string> HttpPostAsync(string url, HttpContent content)
+        public async Task<string> HttpPostAsync(string url, HttpContent? content)
         {
             return await retryPolicy.ExecuteAsync(async () =>
             {
