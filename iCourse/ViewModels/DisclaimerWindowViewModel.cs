@@ -1,10 +1,9 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
-using iCourse.Helpers;
+using iCourse.Messages;
 using System.IO;
 using System.Windows;
-using iCourse.Messages;
 
 namespace iCourse.ViewModels
 {

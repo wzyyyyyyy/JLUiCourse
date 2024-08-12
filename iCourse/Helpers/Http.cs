@@ -1,9 +1,9 @@
-﻿using Polly;
+﻿using Microsoft.Extensions.DependencyInjection;
+using Polly;
 using Polly.Retry;
 using System.Net.Http;
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace iCourse.Helpers
 {

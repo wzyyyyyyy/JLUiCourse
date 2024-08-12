@@ -5,10 +5,8 @@ using CommunityToolkit.Mvvm.Messaging.Messages;
 using iCourse.Helpers;
 using iCourse.Messages;
 using iCourse.Models;
-using iCourse.Views;
-using System.Collections.ObjectModel;
-using System.Windows;
 using Microsoft.Extensions.DependencyInjection;
+using System.Collections.ObjectModel;
 
 namespace iCourse.ViewModels
 {
@@ -54,6 +52,15 @@ namespace iCourse.ViewModels
                     Login();
                 }
             }
+
+            Task.Run(async () =>
+            {
+                for (int i = 0; i < 100000; i++)
+                {
+                    await Task.Delay(100);
+                    Logger.WriteLine($"test{i}");
+                }
+            });
 
             WeakReferenceMessenger.Default.Register<LoginSuccessMessage>(this, LoginSuccess);
         }

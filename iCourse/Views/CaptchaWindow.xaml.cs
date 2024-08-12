@@ -1,9 +1,7 @@
-﻿using System.CodeDom;
-using CommunityToolkit.Mvvm.Messaging;
-using iCourse.Helpers;
-using System.Windows;
+﻿using CommunityToolkit.Mvvm.Messaging;
 using iCourse.Messages;
 using iCourse.ViewModels;
+using System.Windows;
 
 namespace iCourse.Views
 {
