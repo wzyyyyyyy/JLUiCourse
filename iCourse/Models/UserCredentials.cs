@@ -7,11 +7,11 @@ namespace iCourse.Models
     {
         private const string CredentialsFilePath = "credentials.json";
 
-        public string Username { get; set; }
-        public string Password { get; set; }
+        public string Username { get; init; }
+        public string Password { get; init; }
         public string LastBatchId { get; set; }
-        public bool AutoLogin { get; set; }
-        public bool AutoSelectBatch { get; set; }
+        public bool AutoLogin { get; init; }
+        public bool AutoSelectBatch { get; init; }
 
         public static UserCredentials Load()
         {
