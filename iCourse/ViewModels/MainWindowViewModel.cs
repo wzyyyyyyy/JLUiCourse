@@ -55,7 +55,7 @@ namespace iCourse.ViewModels
                 AutoLogin = credentials.AutoLogin;
                 AutoSelectBatch = credentials.AutoSelectBatch;
 
-                if (AutoLogin && Username.Length != 0 && Password.Length != 0)
+                if (AutoLogin && !string.IsNullOrEmpty(Username) && !string.IsNullOrEmpty(Password))
                 {
                     Login();
                 }
