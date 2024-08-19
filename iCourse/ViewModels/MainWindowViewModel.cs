@@ -80,17 +80,6 @@ namespace iCourse.ViewModels
         private void LoginSuccess(object recipient, LoginSuccessMessage message)
         {
             CanLogin = false;
-
-            var credentials = UserCredentials.Load();
-
-            if (credentials.AutoSelectBatch && !string.IsNullOrEmpty(credentials.LastBatchId))
-            {
-                var batchInfo = new BatchInfo
-                {
-                    batchId = credentials.LastBatchId
-                };
-                WeakReferenceMessenger.Default.Send<StartSelectClassMessage>(new StartSelectClassMessage(batchInfo));
-            }
         }
 
         private void SelectCourseFinished(object recipient, SelectCourseFinishedMessage message)

@@ -9,7 +9,7 @@ namespace iCourse.Models
 
         public string Username { get; init; }
         public string Password { get; init; }
-        public string LastBatchId { get; set; }
+        public string LastBatchId { get; init; }
         public bool AutoLogin { get; init; }
         public bool AutoSelectBatch { get; init; }
 
