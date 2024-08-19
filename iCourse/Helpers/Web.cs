@@ -100,21 +100,34 @@ namespace iCourse.Helpers
                 Logger.WriteLine($"学院：{collage}");
 
                 WeakReferenceMessenger.Default.Send<LoginSuccessMessage>(new LoginSuccessMessage());
+                WeakReferenceMessenger.Default.Register<StartSelectClassMessage>(this, StartSelectClassAsync);
 
-                ShowSelectBatchWindow();
+                var batchInfos = GetBatchInfo();
+
+                var credentials = UserCredentials.Load();
+
+                if (credentials.AutoSelectBatch && !string.IsNullOrEmpty(credentials.LastBatchId))
+                {
+                    var batchInfo = batchInfos.First(batchInfo => batchInfo.batchId == credentials.LastBatchId);
+                    if (batchInfo != null)
+                    {
+                        WeakReferenceMessenger.Default.Send<StartSelectClassMessage>(
+                            new StartSelectClassMessage(batchInfo));
+                        return;
+                    }
+                }
+
+                ShowSelectBatchWindow(batchInfos);
                 return;
             }
 
             Logger.WriteLine($"错误:{code}, {msg}");
         }
 
-        private void ShowSelectBatchWindow()
+        private void ShowSelectBatchWindow(List<BatchInfo> batchInfos)
         {
-            var batchInfos = GetBatchInfo();
             WeakReferenceMessenger.Default.Send<ShowWindowMessage>(new ShowWindowMessage(typeof(SelectBatchViewModel),
                 batchInfos));
-
-            WeakReferenceMessenger.Default.Register<StartSelectClassMessage>(this, StartSelectClassAsync);
         }
 
         public List<BatchInfo> GetBatchInfo()
