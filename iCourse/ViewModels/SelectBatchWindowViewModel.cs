@@ -3,6 +3,7 @@ using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
 using iCourse.Messages;
 using iCourse.Models;
+using Microsoft.Extensions.DependencyInjection;
 using System.Windows;
 
 namespace iCourse.ViewModels
@@ -35,12 +36,7 @@ namespace iCourse.ViewModels
                 return;
             }
 
-            var credentials = new UserCredentials
-            {
-                LastBatchId = SelectedBatch.batchId
-            };
-            credentials.Save();
-
+            App.ServiceProvider.GetService<UserCredentials>().LastBatchId = SelectedBatch.batchId;
 
             // 启动选课逻辑
             WeakReferenceMessenger.Default.Send<StartSelectClassMessage>(new StartSelectClassMessage(SelectedBatch));

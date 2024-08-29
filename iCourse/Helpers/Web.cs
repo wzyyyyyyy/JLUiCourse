@@ -104,7 +104,7 @@ namespace iCourse.Helpers
 
                 var batchInfos = GetBatchInfo();
 
-                var credentials = UserCredentials.Load();
+                var credentials = App.ServiceProvider.GetService<UserCredentials>();
 
                 if (credentials.AutoSelectBatch && !string.IsNullOrEmpty(credentials.LastBatchId))
                 {
@@ -264,7 +264,7 @@ namespace iCourse.Helpers
             {
                 var (isSuccess, msg) = await SelectCourseAsync(course);
 
-                
+
                 int currentCompleted = Interlocked.Increment(ref completedTasks);
                 WeakReferenceMessenger.Default.Send<SelectCourseFinishedMessage>(new SelectCourseFinishedMessage(currentCompleted, totalTasks));
 
