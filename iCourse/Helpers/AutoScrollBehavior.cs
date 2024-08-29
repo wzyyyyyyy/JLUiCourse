@@ -1,7 +1,7 @@
-﻿using System.Collections.Specialized;
+﻿using HandyControl.Interactivity;
+using System.Collections.Specialized;
 using System.Windows;
 using System.Windows.Controls;
-using HandyControl.Interactivity;
 
 namespace iCourse.Helpers
 {

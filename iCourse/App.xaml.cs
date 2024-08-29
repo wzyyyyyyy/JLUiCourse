@@ -1,4 +1,5 @@
 ﻿using iCourse.Helpers;
+using iCourse.Models;
 using iCourse.Views;
 using Microsoft.Extensions.DependencyInjection;
 using System.IO;
@@ -28,6 +29,9 @@ namespace iCourse
 
             var _event = ServiceProvider.GetService<Event>();
             _event.RegisterEvents();
+            
+            var credentials = ServiceProvider.GetService<UserCredentials>();
+            credentials.Load();
 
             var mainWindow = ServiceProvider.GetService<MainWindow>();
             mainWindow.Show();
@@ -39,6 +43,7 @@ namespace iCourse
             services.AddSingleton<MainWindow>();
             services.AddSingleton<Event>();
             services.AddSingleton<Web>();
+            services.AddSingleton<UserCredentials>();
         }
 
         private void Application_Exit(object sender, ExitEventArgs e)

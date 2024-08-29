@@ -7,7 +7,6 @@ using iCourse.Messages;
 using iCourse.Models;
 using Microsoft.Extensions.DependencyInjection;
 using System.Collections.ObjectModel;
-using HandyControl.Controls;
 using System.Windows;
 using MessageBox = System.Windows.MessageBox;
 
@@ -18,47 +17,39 @@ namespace iCourse.ViewModels
         IRecipient<PropertyChangedMessage<string>>,
         IRecipient<PropertyChangedMessage<bool>>
     {
-        [ObservableProperty]
-        private bool canLogin = true;
+        [ObservableProperty] private bool canLogin = true;
 
-        [ObservableProperty]
-        private double progressValue;
-        [ObservableProperty]
-        private Visibility progressBarVisibility = Visibility.Hidden;
+        [ObservableProperty] private double progressValue;
+        [ObservableProperty] private Visibility progressBarVisibility = Visibility.Hidden;
 
         private Logger Logger => App.ServiceProvider.GetService<Logger>();
         public ObservableCollection<string> LogMessages => Logger.LogMessages;
 
-        [ObservableProperty]
-        [NotifyPropertyChangedRecipients]
+        [ObservableProperty] [NotifyPropertyChangedRecipients]
         private string username;
 
-        [ObservableProperty]
-        [NotifyPropertyChangedRecipients]
+        [ObservableProperty] [NotifyPropertyChangedRecipients]
         private string password;
 
-        [ObservableProperty]
-        [NotifyPropertyChangedRecipients]
+        [ObservableProperty] [NotifyPropertyChangedRecipients]
         private bool autoLogin;
 
-        [ObservableProperty]
-        [NotifyPropertyChangedRecipients]
+        [ObservableProperty] [NotifyPropertyChangedRecipients]
         private bool autoSelectBatch;
 
         public MainWindowViewModel()
         {
-            var credentials = UserCredentials.Load();
-            if (credentials != null)
+            var credentials = App.ServiceProvider.GetService<UserCredentials>();
+
+            AutoLogin = credentials.AutoLogin;
+            AutoSelectBatch = credentials.AutoSelectBatch;
+
+            if (credentials.AutoLogin && !string.IsNullOrEmpty(credentials.Username) &&
+                !string.IsNullOrEmpty(credentials.Password))
             {
                 Username = credentials.Username;
                 Password = credentials.Password;
-                AutoLogin = credentials.AutoLogin;
-                AutoSelectBatch = credentials.AutoSelectBatch;
-
-                if (AutoLogin && !string.IsNullOrEmpty(Username) && !string.IsNullOrEmpty(Password))
-                {
-                    Login();
-                }
+                Login();
             }
 
             WeakReferenceMessenger.Default.Register<LoginSuccessMessage>(this, LoginSuccess);
@@ -85,40 +76,33 @@ namespace iCourse.ViewModels
         private void SelectCourseFinished(object recipient, SelectCourseFinishedMessage message)
         {
             if (ProgressBarVisibility != Visibility.Visible) ProgressBarVisibility = Visibility.Visible;
-            ProgressValue = ((double)message.FinishedNum / message.Total)*100;
+            ProgressValue = ((double)message.FinishedNum / message.Total) * 100;
         }
 
         public void Receive(PropertyChangedMessage<string> message)
         {
-            if (message.Sender is MainWindowViewModel)
+            switch (message.PropertyName)
             {
-                SaveCredentials();
+                case nameof(Username):
+                    App.ServiceProvider.GetService<UserCredentials>().Username = Username;
+                    break;
+                case nameof(Password):
+                    App.ServiceProvider.GetService<UserCredentials>().Password = Password;
+                    break;
             }
         }
 
         public void Receive(PropertyChangedMessage<bool> message)
         {
-            var credentials = new UserCredentials
+            switch (message.PropertyName)
             {
-                Username = Username,
-                Password = Password,
-                AutoLogin = AutoLogin,
-                AutoSelectBatch = AutoSelectBatch
-            };
-            credentials.Save();
-        }
-
-        private void SaveCredentials()
-        {
-            if (!AutoLogin) { return; }
-            var credentials = new UserCredentials
-            {
-                Username = Username,
-                Password = Password,
-                AutoLogin = AutoLogin,
-                AutoSelectBatch = AutoSelectBatch
-            };
-            credentials.Save();
+                case nameof(AutoLogin):
+                    App.ServiceProvider.GetService<UserCredentials>().AutoLogin = AutoLogin;
+                    break;
+                case nameof(AutoSelectBatch):
+                    App.ServiceProvider.GetService<UserCredentials>().AutoSelectBatch = AutoSelectBatch;
+                    break;
+            }
         }
     }
 }
