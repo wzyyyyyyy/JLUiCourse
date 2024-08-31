@@ -106,10 +106,10 @@ namespace iCourse.Helpers
 
                 var credentials = App.ServiceProvider.GetService<UserCredentials>();
 
+
                 if (credentials.AutoSelectBatch && !string.IsNullOrEmpty(credentials.LastBatchId))
                 {
-                    var batchInfo = batchInfos.First(batchInfo => batchInfo.batchId == credentials.LastBatchId);
-                    if (batchInfo != null)
+                    foreach (var batchInfo in batchInfos.Where(batchInfo => batchInfo.batchId == credentials.LastBatchId))
                     {
                         WeakReferenceMessenger.Default.Send<StartSelectClassMessage>(
                             new StartSelectClassMessage(batchInfo));
