@@ -2,5 +2,5 @@
 
 namespace iCourse.Messages
 {
-    record StartSelectClassMessage(BatchInfo BatchInfo);
+    record SetBatchFinishedMessage(BatchInfo BatchInfo);
 }

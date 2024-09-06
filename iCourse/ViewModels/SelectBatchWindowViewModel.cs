@@ -38,11 +38,15 @@ namespace iCourse.ViewModels
 
             App.ServiceProvider.GetService<UserCredentials>().LastBatchId = SelectedBatch.batchId;
 
-            // 启动选课逻辑
-            WeakReferenceMessenger.Default.Send<StartSelectClassMessage>(new StartSelectClassMessage(SelectedBatch));
+            WeakReferenceMessenger.Default.Send<SetBatchMessage>(new SetBatchMessage(selectedBatch));
 
-            // 关闭窗口
             WeakReferenceMessenger.Default.Send<CloseWindowMessage>(new CloseWindowMessage(typeof(SelectBatchViewModel)));
+        }
+
+        public static void ShowWindow(List<BatchInfo> batchInfos)
+        {
+            WeakReferenceMessenger.Default.Send<ShowWindowMessage>(new ShowWindowMessage(typeof(SelectBatchViewModel),
+                batchInfos));
         }
     }
 }

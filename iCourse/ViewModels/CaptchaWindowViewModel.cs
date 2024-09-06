@@ -15,10 +15,7 @@ namespace iCourse.ViewModels
         [ObservableProperty]
         private BitmapImage imageSource;
 
-        public CaptchaWindowViewModel()
-        {
-
-        }
+        public CaptchaWindowViewModel() { }
 
         public CaptchaWindowViewModel(string base64Image)
         {
@@ -42,6 +39,11 @@ namespace iCourse.ViewModels
         {
             WeakReferenceMessenger.Default.Send<AttemptLoginMessage>(new AttemptLoginMessage(Captcha));
             WeakReferenceMessenger.Default.Send<CloseWindowMessage>(new CloseWindowMessage(typeof(CaptchaWindowViewModel)));
+        }
+
+        public static void ShowWindow(string base64Image)
+        {
+            WeakReferenceMessenger.Default.Send<ShowWindowMessage>(new ShowWindowMessage(typeof(CaptchaWindowViewModel), base64Image));
         }
     }
 }

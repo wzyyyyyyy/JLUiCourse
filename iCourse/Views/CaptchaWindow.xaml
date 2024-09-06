@@ -9,7 +9,9 @@
         Height="250"
         Width="260"
         WindowStartupLocation="CenterScreen"
-        Background="#FF1F1F1F">
+        Background="#FF1F1F1F"
+        Topmost="True"
+        WindowStyle="ToolWindow">
 
     <Window.DataContext>
         <vm:CaptchaWindowViewModel/>
@@ -30,7 +32,7 @@
         <TextBlock Text="请输入验证码：" 
                    FontSize="14" 
                    Foreground="White" 
-                   Margin="30,24,0,0" 
+                   Margin="10,22,20,3" 
                    Grid.ColumnSpan="2"/>
 
         <!-- 验证码图片 -->

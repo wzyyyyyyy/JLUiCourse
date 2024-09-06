@@ -7,7 +7,9 @@ using iCourse.Messages;
 using iCourse.Models;
 using Microsoft.Extensions.DependencyInjection;
 using System.Collections.ObjectModel;
+using System.Globalization;
 using System.Windows;
+using System.Windows.Data;
 using MessageBox = System.Windows.MessageBox;
 
 namespace iCourse.ViewModels
@@ -17,25 +19,37 @@ namespace iCourse.ViewModels
         IRecipient<PropertyChangedMessage<string>>,
         IRecipient<PropertyChangedMessage<bool>>
     {
-        [ObservableProperty] private bool canLogin = true;
+        [ObservableProperty]
+        private bool canLogin = true;
 
-        [ObservableProperty] private double progressValue;
-        [ObservableProperty] private Visibility progressBarVisibility = Visibility.Hidden;
+        [ObservableProperty]
+        private double progressValue;
+        [ObservableProperty]
+        private Visibility progressBarVisibility = Visibility.Hidden;
 
         private Logger Logger => App.ServiceProvider.GetService<Logger>();
         public ObservableCollection<string> LogMessages => Logger.LogMessages;
 
-        [ObservableProperty] [NotifyPropertyChangedRecipients]
+        [ObservableProperty]
+        [NotifyPropertyChangedRecipients]
         private string username;
 
-        [ObservableProperty] [NotifyPropertyChangedRecipients]
+        [ObservableProperty]
+        [NotifyPropertyChangedRecipients]
         private string password;
 
-        [ObservableProperty] [NotifyPropertyChangedRecipients]
+        [ObservableProperty]
+        [NotifyPropertyChangedRecipients]
         private bool autoLogin;
 
-        [ObservableProperty] [NotifyPropertyChangedRecipients]
+        [ObservableProperty]
+        [NotifyPropertyChangedRecipients]
         private bool autoSelectBatch;
+
+        [ObservableProperty]
+        private Visibility afterLoginButtonVisibility = Visibility.Hidden;
+
+        private BatchInfo batch;
 
         public MainWindowViewModel()
         {
@@ -54,6 +68,12 @@ namespace iCourse.ViewModels
 
             WeakReferenceMessenger.Default.Register<LoginSuccessMessage>(this, LoginSuccess);
             WeakReferenceMessenger.Default.Register<SelectCourseFinishedMessage>(this, SelectCourseFinished);
+
+            WeakReferenceMessenger.Default.Register<SetBatchFinishedMessage>(this,
+                (object recipient, SetBatchFinishedMessage message) =>
+                {
+                    batch = message.BatchInfo;
+                });
         }
 
         [RelayCommand]
@@ -65,12 +85,25 @@ namespace iCourse.ViewModels
                 return;
             }
 
-            _ = App.ServiceProvider.GetService<Web>().LoginAsync(Username, Password);
+            _ = App.ServiceProvider.GetService<JLUiCourseApi>().LoginAsync(Username, Password);
+        }
+
+        [RelayCommand]
+        private void StartSelectCourse()
+        {
+            WeakReferenceMessenger.Default.Send(new StartSelectCourseMessage());
+        }
+
+        [RelayCommand]
+        private async Task QueryCourses()
+        {
+            
         }
 
         private void LoginSuccess(object recipient, LoginSuccessMessage message)
         {
             CanLogin = false;
+            AfterLoginButtonVisibility = Visibility.Visible;
         }
 
         private void SelectCourseFinished(object recipient, SelectCourseFinishedMessage message)
@@ -78,6 +111,7 @@ namespace iCourse.ViewModels
             if (ProgressBarVisibility != Visibility.Visible) ProgressBarVisibility = Visibility.Visible;
             ProgressValue = ((double)message.FinishedNum / message.Total) * 100;
         }
+
 
         public void Receive(PropertyChangedMessage<string> message)
         {

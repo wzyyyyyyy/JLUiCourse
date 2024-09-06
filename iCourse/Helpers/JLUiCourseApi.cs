@@ -6,11 +6,12 @@ using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json.Linq;
 using System.Diagnostics;
 using System.Net.Http;
+using System.Text;
 using System.Windows;
 
 namespace iCourse.Helpers
 {
-    public class Web
+    public class JLUiCourseApi
     {
         private Http client;
         private Logger Logger => App.ServiceProvider.GetService<Logger>();
@@ -19,8 +20,19 @@ namespace iCourse.Helpers
         private string password;
         private string uuid;
         private string token;
-        private JObject loginResponse;
         private BatchInfo batch;
+
+        public JLUiCourseApi()
+        {
+            WeakReferenceMessenger.Default.Register<AttemptLoginMessage>(this, AttemptLoginAsync);
+            WeakReferenceMessenger.Default.Register<StartSelectCourseMessage>(this, StartSelectClassAsync);
+            WeakReferenceMessenger.Default.Register<SetBatchMessage>(this, SetBatchIdAsync);
+        }
+
+        ~JLUiCourseApi()
+        {
+            WeakReferenceMessenger.Default.UnregisterAll(this);
+        }
 
         private async Task<string> FetchCaptchaAsync()
         {
@@ -33,12 +45,7 @@ namespace iCourse.Helpers
             var json = JObject.Parse(result);
             uuid = json["data"]["uuid"].ToString();
             var captchaImage = json["data"]["captcha"].ToString();
-            return captchaImage.Substring(captchaImage.IndexOf(",", StringComparison.Ordinal) + 1);
-        }
-
-        private static void ShowCaptchaWindow(string base64Image)
-        {
-            WeakReferenceMessenger.Default.Send<ShowWindowMessage>(new ShowWindowMessage(typeof(CaptchaWindowViewModel), base64Image));
+            return captchaImage[(captchaImage.IndexOf(',') + 1)..];
         }
 
         public async Task LoginAsync(string username_, string password_)
@@ -49,31 +56,39 @@ namespace iCourse.Helpers
 
             var captchaImage = await FetchCaptchaAsync();
 
-            WeakReferenceMessenger.Default.Register<AttemptLoginMessage>(this, AttemptLoginAsync);
-
-            ShowCaptchaWindow(captchaImage);
+            CaptchaWindowViewModel.ShowWindow(captchaImage);
         }
 
-        private async Task<string> PostLoginAsync(string captcha)
+        public async Task<List<Course>> QueryCourses(int index,int pageMaxSize)
         {
-            var encryptedPassword = await new EncryptHelper(client).EncryptWithAesAsync(password);
-            var response = await client.HttpPostAsync("xsxk/auth/login", new FormUrlEncodedContent(new Dictionary<string, string>
+            var response = await client.HttpPostAsync("xsxk/elective/jlu/clazz/list",
+                new StringContent(
+                    $"{{\"teachingClassType\":\"ALLKC\",\"pageNumber\":{index},\"pageSize\":{pageMaxSize},\"orderBy\":\"\"}}",
+                    Encoding.UTF8, "application/json"));
+
+            if (response.StartsWith('<'))
             {
-                {"loginname", username},
-                {"password", encryptedPassword},
-                {"captcha", captcha},
-                {"uuid", uuid}
-            }));
-            return response;
+                Logger.WriteLine("查询失败!");
+                return [];
+            }
+
+            var json = JObject.Parse(response);
+
+            if (json["code"].ToObject<int>() != 200)
+            {
+                Logger.WriteLine("查询失败!");
+                return [];
+            }
+
+            var courses = json["data"]["rows"].ToList();
+
+            return courses.Select(course => new Course(course)).ToList();
         }
 
         private async void AttemptLoginAsync(object recipient, AttemptLoginMessage message)
         {
-            WeakReferenceMessenger.Default.Unregister<AttemptLoginMessage>(this);
-
             var response = await PostLoginAsync(message.Captcha);
             var json = JObject.Parse(response);
-            loginResponse = json;
 
             var code = json["code"].ToObject<int>();
             var msg = json["msg"].ToString();
@@ -84,7 +99,7 @@ namespace iCourse.Helpers
                 _ = LoginAsync(username, password);
                 return;
             }
-
+            
             if (code == 200 && json.ContainsKey("data"))
             {
                 Logger.WriteLine(msg);
@@ -100,9 +115,8 @@ namespace iCourse.Helpers
                 Logger.WriteLine($"学院：{collage}");
 
                 WeakReferenceMessenger.Default.Send<LoginSuccessMessage>(new LoginSuccessMessage());
-                WeakReferenceMessenger.Default.Register<StartSelectClassMessage>(this, StartSelectClassAsync);
 
-                var batchInfos = GetBatchInfo();
+                var batchInfos = GetBatchInfo(json);
 
                 var credentials = App.ServiceProvider.GetService<UserCredentials>();
 
@@ -111,26 +125,32 @@ namespace iCourse.Helpers
                 {
                     foreach (var batchInfo in batchInfos.Where(batchInfo => batchInfo.batchId == credentials.LastBatchId))
                     {
-                        WeakReferenceMessenger.Default.Send<StartSelectClassMessage>(
-                            new StartSelectClassMessage(batchInfo));
+                        await SetBatchIdAsync(batchInfo);
                         return;
                     }
                 }
 
-                ShowSelectBatchWindow(batchInfos);
+                SelectBatchViewModel.ShowWindow(batchInfos);
                 return;
             }
 
             Logger.WriteLine($"错误:{code}, {msg}");
         }
 
-        private void ShowSelectBatchWindow(List<BatchInfo> batchInfos)
+        private async Task<string> PostLoginAsync(string captcha)
         {
-            WeakReferenceMessenger.Default.Send<ShowWindowMessage>(new ShowWindowMessage(typeof(SelectBatchViewModel),
-                batchInfos));
+            var encryptedPassword = await new EncryptHelper(client).EncryptWithAesAsync(password);
+            var response = await client.HttpPostAsync("xsxk/auth/login", new FormUrlEncodedContent(new Dictionary<string, string>
+            {
+                {"loginname", username},
+                {"password", encryptedPassword},
+                {"captcha", captcha},
+                {"uuid", uuid}
+            }));
+            return response;
         }
 
-        public List<BatchInfo> GetBatchInfo()
+        private List<BatchInfo> GetBatchInfo(JObject loginResponse)
         {
             var batchInfos = new List<BatchInfo>();
             loginResponse["data"]["student"]["electiveBatchList"].ToList().ForEach(batch =>
@@ -151,7 +171,12 @@ namespace iCourse.Helpers
             return batchInfos;
         }
 
-        public async Task SetBatchIdAsync(BatchInfo batch)
+        private async void SetBatchIdAsync(object recipient, SetBatchMessage msg)
+        {
+            await SetBatchIdAsync(msg.BatchInfo);
+        }
+
+        private async Task SetBatchIdAsync(BatchInfo batch)
         {
             this.batch = batch;
             client.SetOrigin("https://icourses.jlu.edu.cn");
@@ -166,6 +191,7 @@ namespace iCourse.Helpers
             {
                 Logger.WriteLine("选课批次设置成功");
                 Logger.WriteLine("已选批次:" + batch.batchName);
+                WeakReferenceMessenger.Default.Send<SetBatchFinishedMessage>(new SetBatchFinishedMessage(batch));
             }
             else
             {
@@ -177,10 +203,10 @@ namespace iCourse.Helpers
             await client.HttpGetAsync("xsxk/elective/grablessons?batchId=" + batch.batchId);
         }
 
-        public async Task<List<CourseInfo>> GetFavoriteCoursesAsync()
+        private async Task<List<CourseInfo>> GetFavoriteCoursesAsync()
         {
             var coursesList = new List<CourseInfo>();
-
+            
             client.SetReferer("https://icourses.jlu.edu.cn/xsxk/elective/grablessons?batchId=" + batch.batchId);
             var response = await client.HttpPostAsync("xsxk/sc/clazz/list", null);
             var json = JObject.Parse(response);
@@ -209,7 +235,7 @@ namespace iCourse.Helpers
             return coursesList;
         }
 
-        public async Task<(bool isSuccess, string? msg)> SelectCourseAsync(CourseInfo courseInfo)
+        private async Task<(bool isSuccess, string? msg)> SelectCourseAsync(CourseInfo courseInfo)
         {
             while (true)
             {
@@ -226,6 +252,7 @@ namespace iCourse.Helpers
 
                 if (code == 200)
                 {
+                    MessageBox.Show(json["msg"].ToString());
                     Logger.WriteLine("已选课程:" + courseInfo.courseName);
                     return (true, null);
                 }
@@ -251,9 +278,8 @@ namespace iCourse.Helpers
             }
         }
 
-        private async void StartSelectClassAsync(object recipient, StartSelectClassMessage msg)
+        private async void StartSelectClassAsync(object recipient, StartSelectCourseMessage msg)
         {
-            await SetBatchIdAsync(msg.BatchInfo);
             var list = await GetFavoriteCoursesAsync();
             KeepOnline();
 
@@ -286,7 +312,7 @@ namespace iCourse.Helpers
             Logger.WriteLine($"选择成功课程的数目: {successfulCount}");
         }
 
-        public void KeepOnline()
+        private void KeepOnline()
         {
             _ = Task.Run(async () =>
             {

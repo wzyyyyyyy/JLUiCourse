@@ -29,7 +29,7 @@ namespace iCourse
 
             var _event = ServiceProvider.GetService<Event>();
             _event.RegisterEvents();
-            
+
             var credentials = ServiceProvider.GetService<UserCredentials>();
             credentials.Load();
 
@@ -42,7 +42,7 @@ namespace iCourse
             services.AddSingleton<Logger>();
             services.AddSingleton<MainWindow>();
             services.AddSingleton<Event>();
-            services.AddSingleton<Web>();
+            services.AddSingleton<JLUiCourseApi>();
             services.AddSingleton<UserCredentials>();
         }
 
