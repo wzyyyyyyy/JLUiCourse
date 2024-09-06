@@ -6,6 +6,7 @@
         xmlns:vm ="clr-namespace:iCourse.ViewModels"
         xmlns:hc="https://handyorg.github.io/handycontrol"
         xmlns:helper="clr-namespace:iCourse.Helpers"
+        xmlns:control="clr-namespace:iCourse.Views"
         mc:Ignorable="d"
         Title="iCourse" Height="375" Width="600" WindowStartupLocation="CenterScreen">
     <Window.DataContext>
@@ -24,84 +25,9 @@
             <ColumnDefinition Width="78*"/>
             <ColumnDefinition Width="327*"/>
         </Grid.ColumnDefinitions>
-        <!-- Username Label and TextBox -->
-        <TextBlock Grid.Row="1" 
-                   HorizontalAlignment="Left" 
-                   Margin="8,60,0,113" 
-                   Foreground="White" 
-                   FontSize="14" 
-                   Width="32" 
-                   Grid.Column="1">
-            账号:
-        </TextBlock>
-        <TextBox Grid.Row="1" 
-                 Margin="9,0,16,0" 
-                 VerticalAlignment="Center" 
-                 Background="Snow" 
-                 Foreground="Black" 
-                 FontSize="14" 
-                 Height="28" 
-                 Grid.Column="1"
-                 Text="{Binding Username}"/>
-
-        <!-- Password Label and PasswordBox -->
-        <TextBlock Grid.Row="1" 
-                   HorizontalAlignment="Left" 
-                   Margin="9,145,0,28" 
-                   Foreground="White" 
-                   FontSize="14" Width="31" 
-                   Grid.Column="1">
-            密码:
-        </TextBlock>
-        <TextBox  Grid.Row="1" 
-                      Margin="9,169,0,0" 
-                      VerticalAlignment="Top" 
-                      Background="White" 
-                      Foreground="Black" 
-                      FontSize="14" 
-                      Height="28" 
-                      Grid.Column="1" 
-                      HorizontalAlignment="Left" 
-                      Width="121"
-                      Text="{Binding Password, Mode = TwoWay}"/>
-
-        <!-- Auto-Login Checkbox -->
-        <CheckBox  Content="自动登录" 
-                   Grid.Row="3" 
-                   Margin="10,50,0,0" 
-                   VerticalAlignment="Top" 
-                   Foreground="White" 
-                   FontSize="14" 
-                   Grid.Column="1" 
-                   Height="24" 
-                   RenderTransformOrigin="0.444,2.128" 
-                   IsChecked="{Binding AutoLogin, Mode = TwoWay}"/>
-        <CheckBox  Content="自动选择批次" 
-                   Grid.Row="3" 
-                   Margin="10,21,0,0" 
-                   VerticalAlignment="Top" 
-                   Foreground="White" 
-                   FontSize="14" 
-                   Grid.Column="1" 
-                   Height="24"
-                   IsChecked="{Binding AutoSelectBatch, Mode = TwoWay}"/>
-        <!-- Login Button -->
-        <Button Grid.Row="3" 
-                Content="登录" 
-                Width="120" 
-                Height="32" 
-                Background="#FF2E2E2E"
-                Foreground="White" 
-                FontSize="16" 
-                RenderTransformOrigin="0.708,0.855"
-                Grid.Column="1" 
-                HorizontalAlignment="Left"
-                IsEnabled="{Binding CanLogin}"
-                Command="{Binding LoginCommand}" Margin="9,79,0,0" VerticalAlignment="Top"
-                />
-
+        <control:LoginControl HorizontalAlignment="Left" VerticalAlignment="Top" Margin="10,4,0,0" Grid.RowSpan="4" Grid.ColumnSpan="2" Grid.Column="1"/>
         <!-- Console Output -->
-        <hc:ScrollViewer x:Name="ConsoleScrollViewer" Grid.Row="1" Grid.Column="3" Margin="10,49,40,90" Background="#2E2E2E" Grid.RowSpan="3">
+        <hc:ScrollViewer Grid.Row="1" Grid.Column="3" Margin="10,49,40,90" Background="#2E2E2E" Grid.RowSpan="3">
             <hc:Interaction.Behaviors>
                 <helper:AutoScrollBehavior ItemsSource="{Binding LogMessages}" />
             </hc:Interaction.Behaviors>
