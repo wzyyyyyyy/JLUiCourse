@@ -1,4 +1,4 @@
-name: Build and Package
+name: Build
 
 on:
   push:
@@ -8,7 +8,7 @@ on:
 
 jobs:
   build:
-    name: Build and Package
+    name: Build
     runs-on: windows-latest
 
     steps:
@@ -37,7 +37,7 @@ jobs:
       shell: powershell
 
     - name: Upload artifact
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       with:
         name: build-artifact
         path: ./zip/build-artifact.zip
