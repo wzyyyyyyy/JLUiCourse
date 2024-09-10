@@ -7,9 +7,7 @@ using iCourse.Messages;
 using iCourse.Models;
 using Microsoft.Extensions.DependencyInjection;
 using System.Collections.ObjectModel;
-using System.Globalization;
 using System.Windows;
-using System.Windows.Data;
 using MessageBox = System.Windows.MessageBox;
 
 namespace iCourse.ViewModels
@@ -91,13 +89,13 @@ namespace iCourse.ViewModels
         [RelayCommand]
         private void StartSelectCourse()
         {
-            WeakReferenceMessenger.Default.Send(new StartSelectCourseMessage());
+            App.ServiceProvider.GetService<JLUiCourseApi>().StartSelectClassAsync();
         }
 
         [RelayCommand]
-        private async Task QueryCourses()
+        private void QueryCourses()
         {
-            
+            WeakReferenceMessenger.Default.Send(new ShowWindowMessage(typeof(QueryCourseWindowViewModel)));
         }
 
         private void LoginSuccess(object recipient, LoginSuccessMessage message)

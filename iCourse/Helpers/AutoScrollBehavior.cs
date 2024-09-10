@@ -53,7 +53,10 @@ namespace iCourse.Helpers
         {
             if (_userIsAtBottom)
             {
-                AssociatedObject?.ScrollToEnd();
+                Application.Current.Dispatcher.Invoke(() =>
+                {
+                    AssociatedObject?.ScrollToEnd();
+                });
             }
         }
     }

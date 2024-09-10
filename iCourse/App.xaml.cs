@@ -49,6 +49,7 @@ namespace iCourse
         private void Application_Exit(object sender, ExitEventArgs e)
         {
             // 清理事件处理程序
+            ServiceProvider.GetService<Logger>().Dispose();
             Application.Current.DispatcherUnhandledException -= DispatcherUnhandledExceptionHandler;
             AppDomain.CurrentDomain.UnhandledException -= UnhandledExceptionHandler;
         }
