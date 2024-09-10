@@ -20,6 +20,7 @@ namespace iCourse.Helpers
             {
                 var captchaWindow = new CaptchaWindow(msg.Args[0] as string ?? String.Empty);
                 captchaWindow.ShowDialog();
+                return;
             }
 
             if (msg.ViewModelType == typeof(SelectBatchViewModel))
@@ -27,6 +28,13 @@ namespace iCourse.Helpers
                 var batchInfos = msg.Args[0] as List<BatchInfo>;
                 var selectBatchWindow = new SelectBatchWindow(batchInfos);
                 selectBatchWindow.ShowDialog();
+                return;
+            }
+
+            if (msg.ViewModelType == typeof(QueryCourseWindowViewModel))
+            {
+                var queryCourseWindow = new QueryCourseWindow();
+                queryCourseWindow.ShowDialog();
             }
 
         }

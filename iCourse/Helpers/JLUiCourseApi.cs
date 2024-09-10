@@ -25,8 +25,6 @@ namespace iCourse.Helpers
         public JLUiCourseApi()
         {
             WeakReferenceMessenger.Default.Register<AttemptLoginMessage>(this, AttemptLoginAsync);
-            WeakReferenceMessenger.Default.Register<StartSelectCourseMessage>(this, StartSelectClassAsync);
-            WeakReferenceMessenger.Default.Register<SetBatchMessage>(this, SetBatchIdAsync);
         }
 
         ~JLUiCourseApi()
@@ -59,13 +57,12 @@ namespace iCourse.Helpers
             CaptchaWindowViewModel.ShowWindow(captchaImage);
         }
 
-        public async Task<List<Course>> QueryCourses(int index,int pageMaxSize)
+        public async Task<List<Course>> QueryCoursesAsync(int index, int pageMaxSize)
         {
-            var response = await client.HttpPostAsync("xsxk/elective/jlu/clazz/list",
-                new StringContent(
-                    $"{{\"teachingClassType\":\"ALLKC\",\"pageNumber\":{index},\"pageSize\":{pageMaxSize},\"orderBy\":\"\"}}",
-                    Encoding.UTF8, "application/json"));
-
+            var content = new StringContent(
+                $"{{\"teachingClassType\":\"ALLKC\",\"pageNumber\":{index},\"pageSize\":{pageMaxSize},\"orderBy\":\"\",\"teachingClassType\": \"XGKC\"}}",
+                Encoding.UTF8, "application/json");
+            var response = await client.HttpPostAsync("xsxk/elective/jlu/clazz/list", content);
             if (response.StartsWith('<'))
             {
                 Logger.WriteLine("查询失败!");
@@ -81,12 +78,62 @@ namespace iCourse.Helpers
             }
 
             var courses = json["data"]["rows"].ToList();
-
             return courses.Select(course => new Course(course)).ToList();
+        }
+
+        public async Task<List<Course>> QueryCoursesAsync(int index, int pageMaxSize, string key)
+        {
+            var content = new StringContent(
+                $"{{\"teachingClassType\":\"ALLKC\",\"pageNumber\":{index},\"pageSize\":{pageMaxSize},\"orderBy\":\"\",\"teachingClassType\": \"XGKC\",\"KEY\":\"{key}\"}}",
+                Encoding.UTF8, "application/json");
+            var response = await client.HttpPostAsync("xsxk/elective/jlu/clazz/list", content);
+            if (response.StartsWith('<'))
+            {
+                Logger.WriteLine("查询失败!");
+                return [];
+            }
+
+            var json = JObject.Parse(response);
+
+            if (json["code"].ToObject<int>() != 200)
+            {
+                Logger.WriteLine("查询失败!");
+                return [];
+            }
+
+            var courses = json["data"]["rows"].ToList();
+            return courses.Select(course => new Course(course)).ToList();
+        }
+
+        public async Task AddToFavoritesAsync(Course course)
+        {
+            client.SetReferer("https://icourses.jlu.edu.cn/xsxk/elective/grablessons?batchId=" + batch.batchId);
+            client.SetOrigin("https://icourses.jlu.edu.cn");
+
+            var response = await client.HttpPostAsync("xsxk/sc/clazz/add", new FormUrlEncodedContent(new Dictionary<string, string>
+            {
+                {"clazzId", course.CourseId},
+                {"secretVal", course.SecretVal},
+                {"clazzType", "XGKC"}
+            }));
+
+            if (response.StartsWith('<'))
+            {
+                Logger.WriteLine("添加失败!");
+                return;
+            }
+
+            var json = JObject.Parse(response);
+            if (json["code"].ToObject<int>() == 200)
+            {
+                Logger.WriteLine($"已添加课程{course.Name}到收藏");
+                return;
+            }
         }
 
         private async void AttemptLoginAsync(object recipient, AttemptLoginMessage message)
         {
+
             var response = await PostLoginAsync(message.Captcha);
             var json = JObject.Parse(response);
 
@@ -99,7 +146,7 @@ namespace iCourse.Helpers
                 _ = LoginAsync(username, password);
                 return;
             }
-            
+
             if (code == 200 && json.ContainsKey("data"))
             {
                 Logger.WriteLine(msg);
@@ -129,7 +176,6 @@ namespace iCourse.Helpers
                         return;
                     }
                 }
-
                 SelectBatchViewModel.ShowWindow(batchInfos);
                 return;
             }
@@ -171,12 +217,7 @@ namespace iCourse.Helpers
             return batchInfos;
         }
 
-        private async void SetBatchIdAsync(object recipient, SetBatchMessage msg)
-        {
-            await SetBatchIdAsync(msg.BatchInfo);
-        }
-
-        private async Task SetBatchIdAsync(BatchInfo batch)
+        public async Task SetBatchIdAsync(BatchInfo batch)
         {
             this.batch = batch;
             client.SetOrigin("https://icourses.jlu.edu.cn");
@@ -201,12 +242,14 @@ namespace iCourse.Helpers
             client.SetReferer("https://icourses.jlu.edu.cn/xsxk/profile/index.html");
 
             await client.HttpGetAsync("xsxk/elective/grablessons?batchId=" + batch.batchId);
+
+            KeepOnline();
         }
 
         private async Task<List<CourseInfo>> GetFavoriteCoursesAsync()
         {
             var coursesList = new List<CourseInfo>();
-            
+
             client.SetReferer("https://icourses.jlu.edu.cn/xsxk/elective/grablessons?batchId=" + batch.batchId);
             var response = await client.HttpPostAsync("xsxk/sc/clazz/list", null);
             var json = JObject.Parse(response);
@@ -278,10 +321,9 @@ namespace iCourse.Helpers
             }
         }
 
-        private async void StartSelectClassAsync(object recipient, StartSelectCourseMessage msg)
+        public async void StartSelectClassAsync()
         {
             var list = await GetFavoriteCoursesAsync();
-            KeepOnline();
 
             int totalTasks = list.Count;
             int completedTasks = 0;

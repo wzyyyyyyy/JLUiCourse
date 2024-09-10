@@ -50,7 +50,7 @@
 
         <!-- Auto-Login Checkbox -->
         <CheckBox  Content="自动登录" 
-           Margin="11,230,-1,0" 
+           Margin="10,212,0,0" 
            VerticalAlignment="Top" 
            Foreground="White" 
            FontSize="14" 
@@ -58,7 +58,7 @@
            RenderTransformOrigin="0.444,2.128" 
            IsChecked="{Binding AutoLogin, Mode = TwoWay}" />
         <CheckBox  Content="自动选择批次" 
-           Margin="11,201,-1,0" 
+           Margin="11,183,-1,0" 
            VerticalAlignment="Top" 
            Foreground="White" 
            FontSize="14" 
@@ -75,7 +75,7 @@
         RenderTransformOrigin="0.708,0.855" 
         HorizontalAlignment="Left"
         Visibility= "{Binding CanLogin,Converter={StaticResource Boolean2VisibilityConverter}}"
-        Command="{Binding LoginCommand}" Margin="10,276,0,0" VerticalAlignment="Top"
+        Command="{Binding LoginCommand}" Margin="9,255,0,0" VerticalAlignment="Top"
         />
 
         <Button 
@@ -88,10 +88,10 @@
             RenderTransformOrigin="0.708,0.855" 
             HorizontalAlignment="Left"
             Visibility="{Binding AfterLoginButtonVisibility}"
-            Command="{Binding  StartSelectCourseCommand}" Margin="9,259,0,0" VerticalAlignment="Top"
+            Command="{Binding  StartSelectCourseCommand}" Margin="9,244,0,0" VerticalAlignment="Top"
         />
         <Button 
-            Content="查询课程" 
+            Content="查询课程(WIP)" 
             Width="120" 
             Height="32" 
             Background="#FF2E2E2E"
@@ -100,7 +100,7 @@
             RenderTransformOrigin="0.708,0.855" 
             HorizontalAlignment="Left"
             Visibility="{Binding AfterLoginButtonVisibility}"
-            Command="{Binding QueryCoursesCommand}" Margin="9,308,0,0" VerticalAlignment="Top"
+            Command="{Binding QueryCoursesCommand}" Margin="9,292,0,0" VerticalAlignment="Top"
         />
     </Grid>
 </UserControl>

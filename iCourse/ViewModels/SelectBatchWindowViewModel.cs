@@ -1,6 +1,7 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
+using iCourse.Helpers;
 using iCourse.Messages;
 using iCourse.Models;
 using Microsoft.Extensions.DependencyInjection;
@@ -38,7 +39,7 @@ namespace iCourse.ViewModels
 
             App.ServiceProvider.GetService<UserCredentials>().LastBatchId = SelectedBatch.batchId;
 
-            WeakReferenceMessenger.Default.Send<SetBatchMessage>(new SetBatchMessage(selectedBatch));
+            App.ServiceProvider.GetService<JLUiCourseApi>().SetBatchIdAsync(selectedBatch);
 
             WeakReferenceMessenger.Default.Send<CloseWindowMessage>(new CloseWindowMessage(typeof(SelectBatchViewModel)));
         }
