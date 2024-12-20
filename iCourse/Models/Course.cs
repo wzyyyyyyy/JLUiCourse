@@ -8,7 +8,7 @@ namespace iCourse.Models
         Elective, RestrictedElective
     }
 
-    public class Course : ObservableObject
+public class Course : ObservableObject
     {
         public Course()
         {
@@ -20,6 +20,7 @@ namespace iCourse.Models
             TeacherName = json["SKJS"].ToString();
             Campus = json["XQ"].ToString();
             ClassLocation = json["YPSJDD"].ToString();
+            ClazzType = json["teachingClassType"].ToString();
             SecretVal = json["secretVal"].ToString();
             CourseId = json["JXBID"].ToString();
 
@@ -34,6 +35,7 @@ namespace iCourse.Models
         public string Name { get; set; }
         public string CourseId { get; set; }
         public string TeacherName { get; set; }
+        public string ClazzType { get; set; }
         public string Campus { get; set; }
         public ClassSelectType SelectType { get; set; }
         public string ClassLocation { get; set; }

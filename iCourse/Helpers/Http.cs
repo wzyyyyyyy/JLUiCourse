@@ -15,7 +15,7 @@ namespace iCourse.Helpers
             : base(new HttpClientHandler
             {
                 UseCookies = true,
-                ServerCertificateCustomValidationCallback = (HttpRequestMessage request, X509Certificate2 certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors) => true
+                ServerCertificateCustomValidationCallback = (message, cert, chain, errors) => true
             })
         {
             Timeout = timeout;

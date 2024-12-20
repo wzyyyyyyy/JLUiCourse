@@ -4,6 +4,8 @@ using CommunityToolkit.Mvvm.Messaging;
 using iCourse.Messages;
 using System.IO;
 using System.Windows.Media.Imaging;
+using iCourse.Helpers;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace iCourse.ViewModels
 {
@@ -37,7 +39,7 @@ namespace iCourse.ViewModels
         [RelayCommand]
         private void CloseWindow()
         {
-            WeakReferenceMessenger.Default.Send<AttemptLoginMessage>(new AttemptLoginMessage(Captcha));
+            App.ServiceProvider.GetService<JLUiCourseApi>().AttemptLoginAsync(captcha);
             WeakReferenceMessenger.Default.Send<CloseWindowMessage>(new CloseWindowMessage(typeof(CaptchaWindowViewModel)));
         }
 
