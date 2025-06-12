@@ -275,7 +275,6 @@ namespace iCourse.Helpers
         private async Task<(bool isSuccess, string? msg)> SelectCourseAsync(Course courseInfo)
         {
             client.SetReferer("https://icourses.jlu.edu.cn/xsxk/elective/grablessons?batchId=" + batch.batchId);
-
             while (true)
             {
                 var response = await client.HttpPostAsync("xsxk/sc/clazz/addxk", new FormUrlEncodedContent(new Dictionary<string, string>
