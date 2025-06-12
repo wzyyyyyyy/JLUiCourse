@@ -18,16 +18,16 @@ jobs:
     - name: Setup .NET
       uses: actions/setup-dotnet@v3
       with:
-        dotnet-version: '8.0.x' 
+        dotnet-version: '8.0.x'
 
     - name: Restore dependencies
       run: dotnet restore
 
     - name: Build
-      run: dotnet build --configuration Release /nowarn
+      run: dotnet build --configuration Release /nowarn:CS8618;CS8600;CS8601;CS8602;CS8603;CS8604;CS8620;CS1998
 
     - name: Publish
-      run: dotnet publish --configuration Release /nowarn --output ./publish
+      run: dotnet publish --configuration Release /nowarn:CS8618;CS8600;CS8601;CS8602;CS8603;CS8604;CS8620;CS1998 --output ./publish
 
     - name: Zip artifact
       run: |
