@@ -246,9 +246,9 @@ namespace iCourse.Helpers
             KeepOnline();
         }
 
-        private async Task<List<CourseInfo>> GetFavoriteCoursesAsync()
+        private async Task<List<Course>> GetFavoriteCoursesAsync()
         {
-            var coursesList = new List<CourseInfo>();
+            var coursesList = new List<Course>();
 
             client.SetReferer("https://icourses.jlu.edu.cn/xsxk/elective/grablessons?batchId=" + batch.batchId);
             var response = await client.HttpPostAsync("xsxk/sc/clazz/list", null);
@@ -259,13 +259,7 @@ namespace iCourse.Helpers
                 var courses = json["data"];
                 foreach (var course in courses)
                 {
-                    var courseInfo = new CourseInfo
-                    {
-                        courseName = course["KCM"].ToString(),
-                        courseID = course["JXBID"].ToString(),
-                        secretVal = course["secretVal"].ToString(),
-                        clazzType = course["teachingClassType"].ToString()
-                    };
+                    var courseInfo = new Course(course);
                     coursesList.Add(courseInfo);
                 }
             }
@@ -274,19 +268,21 @@ namespace iCourse.Helpers
                 Logger.WriteLine(json["msg"].ToString());
             }
 
-            Logger.WriteLine("收藏中的课程:\n" + string.Join("\n", coursesList.Select(c => c.courseName)));
+            Logger.WriteLine("收藏中的课程:\n" + string.Join("\n", coursesList.Select(c => c.Name)));
             return coursesList;
         }
 
-        private async Task<(bool isSuccess, string? msg)> SelectCourseAsync(CourseInfo courseInfo)
+        private async Task<(bool isSuccess, string? msg)> SelectCourseAsync(Course courseInfo)
         {
+            client.SetReferer("https://icourses.jlu.edu.cn/xsxk/elective/grablessons?batchId=" + batch.batchId);
+
             while (true)
             {
                 var response = await client.HttpPostAsync("xsxk/sc/clazz/addxk", new FormUrlEncodedContent(new Dictionary<string, string>
                 {
-                    {"clazzId", courseInfo.courseID},
-                    {"secretVal", courseInfo.secretVal},
-                    {"clazzType", courseInfo.clazzType }
+                    {"clazzId", courseInfo.CourseId},
+                    {"secretVal", courseInfo.SecretVal},
+                    {"clazzType", courseInfo.SelectType.ToString() }
                 }));
 
                 var json = JObject.Parse(response);
@@ -296,27 +292,27 @@ namespace iCourse.Helpers
                 if (code == 200)
                 {
                     MessageBox.Show(json["msg"].ToString());
-                    Logger.WriteLine("已选课程:" + courseInfo.courseName);
+                    Logger.WriteLine("已选课程:" + courseInfo.Name);
                     return (true, null);
                 }
 
                 var msg = json["msg"].ToString();
                 if (msg == "该课程已在选课结果中")
                 {
-                    Logger.WriteLine(courseInfo.courseName + " : " + msg);
-                    Logger.WriteLine(courseInfo.courseName + " : 已放弃,尝试选下一门课程");
+                    Logger.WriteLine(courseInfo.Name + " : " + msg);
+                    Logger.WriteLine(courseInfo.Name + " : 已放弃,尝试选下一门课程");
                     return (true, null);
                 }
 
                 if (msg == "课容量已满")
                 {
-                    Logger.WriteLine(courseInfo.courseName + " : " + msg);
-                    Logger.WriteLine(courseInfo.courseName + " : 已放弃,尝试选下一门课程");
+                    Logger.WriteLine(courseInfo.Name + " : " + msg);
+                    Logger.WriteLine(courseInfo.Name + " : 已放弃,尝试选下一门课程");
                     return (false, msg);
                 }
 
-                Logger.WriteLine(courseInfo.courseName + " : 选课失败,原因：" + msg);
-                Logger.WriteLine(courseInfo.courseName + " : 重新尝试...");
+                Logger.WriteLine(courseInfo.Name + " : 选课失败,原因：" + msg);
+                Logger.WriteLine(courseInfo.Name + " : 重新尝试...");
                 await Task.Delay(200 + new Random().Next(0, 200));
             }
         }
@@ -336,7 +332,7 @@ namespace iCourse.Helpers
                 int currentCompleted = Interlocked.Increment(ref completedTasks);
                 WeakReferenceMessenger.Default.Send<SelectCourseFinishedMessage>(new SelectCourseFinishedMessage(currentCompleted, totalTasks));
 
-                return new { course.courseName, isSuccess, msg };
+                return new { course.Name, isSuccess, msg };
             }).ToList();
 
             var results = await Task.WhenAll(tasks);
@@ -348,7 +344,7 @@ namespace iCourse.Helpers
 
             foreach (var result in failedCourses)
             {
-                Logger.WriteLine($"课程选择失败: {result.courseName}, 原因: {result.msg}");
+                Logger.WriteLine($"课程选择失败: {result.Name}, 原因: {result.msg}");
             }
 
             Logger.WriteLine($"选择成功课程的数目: {successfulCount}");
