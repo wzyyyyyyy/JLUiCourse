@@ -24,10 +24,10 @@ jobs:
       run: dotnet restore
 
     - name: Build
-      run: dotnet build --configuration Release /nowarn:CS8618;CS8600;CS8601;CS8602;CS8603;CS8604;CS8620;CS1998
+      run: dotnet build --configuration
 
     - name: Publish
-      run: dotnet publish --configuration Release /nowarn:CS8618;CS8600;CS8601;CS8602;CS8603;CS8604;CS8620;CS1998 --output ./publish
+      run: dotnet publish --configuration Release --output ./publish
 
     - name: Zip artifact
       run: |
