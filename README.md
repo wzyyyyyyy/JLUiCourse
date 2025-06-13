@@ -1,4 +1,5 @@
-[![Build](https://github.com/wzyyyyyyy/JLUiCourse/actions/workflows/dotnet.yml/badge.svg)](https://github.com/wzyyyyyyy/JLUiCourse/actions/workflows/dotnet.yml)
+[![Build](https://github.com/wzyyyyyyy/JLUiCourse/actions/workflows/dotnet.yml/badge.svg)](https://github.com/wzyyyyyyy/JLUiCourse/actions/workflows/dotnet.yml)  ![downloads](https://img.shields.io/github/downloads/wzyyyyyyy/JLUiCourse/total.svg)
+ 
 ### 如果觉得不错的话，就给我一个star吧，安卓版本制作中
 
 ## 使用方法
