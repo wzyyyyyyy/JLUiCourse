@@ -4,6 +4,7 @@ using iCourse.Models;
 using iCourse.ViewModels;
 using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json.Linq;
+using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Net.Http;
 using System.Text;
@@ -273,128 +274,108 @@ namespace iCourse.Helpers
         }
 
         private static readonly Random _random = new();
+        private readonly ConcurrentQueue<(Course course, TaskCompletionSource<(bool, string?)> tcs)> _taskQueue = new();
+        private readonly int _workerCount = Environment.ProcessorCount * 2;
+        private readonly CancellationTokenSource _cts = new();
 
-        private async Task<(bool isSuccess, string? msg)> TrySelectCourseOnceAsync(Course courseInfo)
+        private string BuildRequestBody(Course course)
         {
-            client.SetReferer($"https://icourses.jlu.edu.cn/xsxk/elective/grablessons?batchId={batch.batchId}");
+            return $"clazzId={Uri.EscapeDataString(course.CourseId)}&secretVal={Uri.EscapeDataString(course.SecretVal)}&clazzType={Uri.EscapeDataString(course.SelectType.ToString())}";
+        }
 
-            try
-            {
-                var content = new FormUrlEncodedContent(new Dictionary<string, string>
+        public void StartWorkerPool()
         {
-            { "clazzId", courseInfo.CourseId },
-            { "secretVal", courseInfo.SecretVal },
-            { "clazzType", courseInfo.SelectType.ToString() }
-        });
-
-                var response = await client.HttpPostAsync("xsxk/sc/clazz/addxk", content);
-                var json = JObject.Parse(response);
-                var code = json["code"].ToObject<int>();
-                var msg = json["msg"].ToString();
-
-                if (code == 200)
-                {
-                    MessageBox.Show(msg);
-                    Logger.WriteLine("已选课程: " + courseInfo.Name);
-                    return (true, null);
-                }
-
-                if (msg == "该课程已在选课结果中")
-                {
-                    Logger.WriteLine($"{courseInfo.Name} : 已放弃，尝试选下一门课程");
-                    return (true, null);
-                }
-
-                if (msg == "课容量已满")
-                {
-                    Logger.WriteLine($"{courseInfo.Name} : 容量已满，放弃");
-                    return (false, msg);
-                }
-
-                Logger.WriteLine($"{courseInfo.Name} : {msg}");
-                return (false, msg);
-            }
-            catch (Exception ex)
+            for (int i = 0; i < _workerCount; i++)
             {
-                Logger.WriteLine($"{courseInfo.Name} : 异常 -> {ex.Message}");
-                return (false, ex.Message);
+                Task.Factory.StartNew(async () =>
+                {
+                    while (!_cts.IsCancellationRequested)
+                    {
+                        if (_taskQueue.TryDequeue(out var workItem))
+                        {
+                            var (course, tcs) = workItem;
+                            var result = await TrySelectCourseWithBackoffAsync(course);
+                            tcs.TrySetResult(result);
+                        }
+                        else
+                        {
+                            // 无任务时等待
+                            await Task.Delay(10);
+                        }
+                    }
+                }, TaskCreationOptions.LongRunning);
             }
         }
 
-        private async Task<(bool isSuccess, string? msg)> SelectCourseConcurrentlyAsync(Course courseInfo, int parallelCount = 3)
+        private async Task<(bool isSuccess, string? msg)> TrySelectCourseWithBackoffAsync(Course course)
         {
-            var cts = new CancellationTokenSource();
+            client.DefaultRequestHeaders.Referrer = new Uri($"https://icourses.jlu.edu.cn/xsxk/elective/grablessons?batchId={batch.batchId}");
 
-            var tasks = new List<Task<(bool isSuccess, string? msg)>>();
+            int failCount = 0;
 
-            object lockObj = new();
+            string requestBody = BuildRequestBody(course);
+            var content = new StringContent(requestBody, Encoding.UTF8, "application/x-www-form-urlencoded");
 
-            (bool isSuccess, string? msg) finalResult = (false, null);
-            bool completed = false;
-
-            for (int i = 0; i < parallelCount; i++)
+            while (true)
             {
-                tasks.Add(Task.Run(async () =>
+                try
                 {
-                    while (!cts.IsCancellationRequested && !completed)
+                    var response = await client.PostAsync("xsxk/sc/clazz/addxk", content);
+                    var respStr = await response.Content.ReadAsStringAsync();
+
+                    var json = JObject.Parse(respStr);
+                    var code = json["code"].ToObject<int>();
+                    var msg = json["msg"].ToString();
+
+                    if (code == 200)
                     {
-                        var result = await TrySelectCourseOnceAsync(courseInfo);
-
-                        if (result.isSuccess)
-                        {
-                            lock (lockObj)
-                            {
-                                if (!completed)
-                                {
-                                    completed = true;
-                                    finalResult = result;
-                                    cts.Cancel();
-                                }
-                            }
-                            break;
-                        }
-                        else if (result.msg == "课容量已满" || result.msg == "该课程已在选课结果中")
-                        {
-                            lock (lockObj)
-                            {
-                                if (!completed)
-                                {
-                                    completed = true;
-                                    finalResult = result;
-                                    cts.Cancel();
-                                }
-                            }
-                            break;
-                        }
-
-                        // 避免所有线程同时请求
-                        await Task.Delay(30 + _random.Next(0, 30));
+                        Logger.WriteLine($"成功选课: {course.Name}");
+                        return (true, null);
                     }
 
-                    return finalResult;
-                }));
+                    Logger.WriteLine($"{course.Name} : {msg}");
+
+                    if (msg == "该课程已在选课结果中" || msg == "课容量已满")
+                    {
+                        return (msg == "课容量已满" ? (false, msg) : (true, null));
+                    }
+
+
+                    failCount++;
+                    int delay = Math.Min(500, 100 + failCount * 100 + _random.Next(0, 50));
+                    await Task.Delay(delay);
+                }
+                catch (Exception ex)
+                {
+                    Logger.WriteLine($"{course.Name} : 异常 {ex.Message}");
+                    failCount++;
+                    int delay = Math.Min(500, 100 + failCount * 100 + _random.Next(0, 50));
+                    await Task.Delay(delay);
+                }
             }
-
-            await Task.WhenAll(tasks);
-
-            return finalResult;
         }
 
-        public async void StartSelectClassAsync()
+        public async Task<(bool isSuccess, string? msg)> EnqueueSelectCourseAsync(Course course)
+        {
+            var tcs = new TaskCompletionSource<(bool, string?)>(TaskCreationOptions.RunContinuationsAsynchronously);
+            _taskQueue.Enqueue((course, tcs));
+            return await tcs.Task;
+        }
+
+        public async Task StartSelectClassAsync()
         {
             var list = await GetFavoriteCoursesAsync();
 
-            int totalTasks = list.Count;
-            int completedTasks = 0;
+            StartWorkerPool();
+
+            int total = list.Count;
+            int completed = 0;
 
             var tasks = list.Select(async course =>
             {
-                //  3 个并发任务
-                var (isSuccess, msg) = await SelectCourseConcurrentlyAsync(course, parallelCount: 3);
-
-                int currentCompleted = Interlocked.Increment(ref completedTasks);
-                WeakReferenceMessenger.Default.Send(new SelectCourseFinishedMessage(currentCompleted, totalTasks));
-
+                var (isSuccess, msg) = await EnqueueSelectCourseAsync(course);
+                Interlocked.Increment(ref completed);
+                WeakReferenceMessenger.Default.Send(new SelectCourseFinishedMessage(completed, total));
                 return new { course.Name, isSuccess, msg };
             }).ToList();
 
@@ -402,15 +383,12 @@ namespace iCourse.Helpers
 
             Logger.WriteLine("选课完成!");
 
-            var failedCourses = results.Where(r => !r.isSuccess).ToList();
-            var succeeded = results.Count(r => r.isSuccess);
+            foreach (var r in results.Where(r => !r.isSuccess))
+                Logger.WriteLine($"课程失败: {r.Name}, 原因: {r.msg}");
 
-            foreach (var r in failedCourses)
-            {
-                Logger.WriteLine($"课程选择失败: {r.Name}, 原因: {r.msg}");
-            }
+            Logger.WriteLine($"成功数: {results.Count(r => r.isSuccess)}");
 
-            Logger.WriteLine($"成功选择课程数: {succeeded}");
+            _cts.Cancel();
         }
 
         private void KeepOnline()
