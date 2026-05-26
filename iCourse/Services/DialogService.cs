@@ -29,7 +29,7 @@ public sealed class DialogService(IServiceProvider services) : IDialogService
     {
         var window = new MessageWindow
         {
-            DataContext = new MessageWindowViewModel(title, message)
+            DataContext = ActivatorUtilities.CreateInstance<MessageWindowViewModel>(services, title, message)
         };
 
         if (Owner is null)
