@@ -1,5 +1,6 @@
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
+using Avalonia.Threading;
 using iCourse.Models;
 using iCourse.ViewModels;
 using iCourse.Views;
@@ -12,56 +13,107 @@ namespace iCourse.Services;
 
 public sealed class DialogService(IServiceProvider services) : IDialogService
 {
-    private Window? Owner
+    public Task ShowMessageAsync(string title, string message)
     {
-        get
+        return RunOnUiThreadAsync(async () =>
         {
-            if (Avalonia.Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
+            var window = new MessageWindow
             {
-                return desktop.MainWindow;
+                DataContext = ActivatorUtilities.CreateInstance<MessageWindowViewModel>(services, title, message)
+            };
+
+            await window.ShowDialog(GetOwnerOrThrow());
+        });
+    }
+
+    public Task<string?> ShowCaptchaAsync(string base64Image)
+    {
+        return RunOnUiThreadAsync(async () =>
+        {
+            var viewModel = ActivatorUtilities.CreateInstance<CaptchaWindowViewModel>(services, base64Image);
+            var window = new CaptchaWindow { DataContext = viewModel };
+            return await window.ShowDialog<string?>(GetOwnerOrThrow());
+        });
+    }
+
+    public Task<BatchInfo?> SelectBatchAsync(IReadOnlyList<BatchInfo> batches)
+    {
+        return RunOnUiThreadAsync(async () =>
+        {
+            var viewModel = ActivatorUtilities.CreateInstance<SelectBatchViewModel>(services, batches);
+            var window = new SelectBatchWindow { DataContext = viewModel };
+            return await window.ShowDialog<BatchInfo?>(GetOwnerOrThrow());
+        });
+    }
+
+    public Task ShowQueryCoursesAsync()
+    {
+        return RunOnUiThreadAsync(async () =>
+        {
+            var viewModel = ActivatorUtilities.CreateInstance<QueryCourseWindowViewModel>(services);
+            var window = new QueryCourseWindow { DataContext = viewModel };
+            await window.ShowDialog(GetOwnerOrThrow());
+        });
+    }
+
+    private static Window GetOwnerOrThrow()
+    {
+        if (Avalonia.Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop &&
+            desktop.MainWindow is not null)
+        {
+            return desktop.MainWindow;
+        }
+
+        throw new InvalidOperationException("No main window is available for modal dialogs.");
+    }
+
+    private static Task RunOnUiThreadAsync(Func<Task> action)
+    {
+        if (Dispatcher.UIThread.CheckAccess())
+        {
+            return action();
+        }
+
+        var taskCompletionSource = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        Dispatcher.UIThread.Post(async () =>
+        {
+            try
+            {
+                await action();
+                taskCompletionSource.SetResult();
             }
+            catch (Exception exception)
+            {
+                taskCompletionSource.SetException(exception);
+            }
+        });
 
-            return null;
-        }
+        return taskCompletionSource.Task;
     }
 
-    public async Task ShowMessageAsync(string title, string message)
+    private static Task<T> RunOnUiThreadAsync<T>(Func<Task<T>> action)
     {
-        var window = new MessageWindow
+        if (Dispatcher.UIThread.CheckAccess())
         {
-            DataContext = ActivatorUtilities.CreateInstance<MessageWindowViewModel>(services, title, message)
-        };
-
-        if (Owner is null)
-        {
-            window.Show();
-            return;
+            return action();
         }
 
-        await window.ShowDialog(Owner);
-    }
+        var taskCompletionSource = new TaskCompletionSource<T>(TaskCreationOptions.RunContinuationsAsynchronously);
 
-    public async Task<string?> ShowCaptchaAsync(string base64Image)
-    {
-        var viewModel = ActivatorUtilities.CreateInstance<CaptchaWindowViewModel>(services, base64Image);
-        var window = new CaptchaWindow { DataContext = viewModel };
-        return Owner is null ? null : await window.ShowDialog<string?>(Owner);
-    }
-
-    public async Task<BatchInfo?> SelectBatchAsync(IReadOnlyList<BatchInfo> batches)
-    {
-        var viewModel = ActivatorUtilities.CreateInstance<SelectBatchViewModel>(services, batches);
-        var window = new SelectBatchWindow { DataContext = viewModel };
-        return Owner is null ? null : await window.ShowDialog<BatchInfo?>(Owner);
-    }
-
-    public async Task ShowQueryCoursesAsync()
-    {
-        var viewModel = ActivatorUtilities.CreateInstance<QueryCourseWindowViewModel>(services);
-        var window = new QueryCourseWindow { DataContext = viewModel };
-        if (Owner is not null)
+        Dispatcher.UIThread.Post(async () =>
         {
-            await window.ShowDialog(Owner);
-        }
+            try
+            {
+                var result = await action();
+                taskCompletionSource.SetResult(result);
+            }
+            catch (Exception exception)
+            {
+                taskCompletionSource.SetException(exception);
+            }
+        });
+
+        return taskCompletionSource.Task;
     }
 }
