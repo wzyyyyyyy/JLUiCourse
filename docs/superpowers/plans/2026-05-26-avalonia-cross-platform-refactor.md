@@ -57,7 +57,7 @@
 - Create: `iCourse/Program.cs`
 - Modify: `iCourse.sln`
 
-- [ ] **Step 1: Add a test project before changing UI framework**
+- [x] **Step 1: Add a test project before changing UI framework**
 
 Run:
 
@@ -69,7 +69,7 @@ dotnet add iCourse.Tests/iCourse.Tests.csproj reference iCourse/iCourse.csproj
 
 Expected: `iCourse.Tests` is added to `iCourse.sln`.
 
-- [ ] **Step 2: Replace the application project file**
+- [x] **Step 2: Replace the application project file**
 
 Write `iCourse/iCourse.csproj`:
 
@@ -98,7 +98,7 @@ Write `iCourse/iCourse.csproj`:
 </Project>
 ```
 
-- [ ] **Step 3: Add the Avalonia entry point**
+- [x] **Step 3: Add the Avalonia entry point**
 
 Write `iCourse/Program.cs`:
 
@@ -126,7 +126,7 @@ internal static class Program
 }
 ```
 
-- [ ] **Step 4: Run restore and confirm WPF references are gone**
+- [x] **Step 4: Run restore and confirm WPF references are gone**
 
 Run:
 
@@ -137,7 +137,7 @@ rg "System.Windows|UseWPF|HandyControl" iCourse
 
 Expected: restore succeeds; `rg` still finds source references that later tasks remove, but no `UseWPF` or `HandyControl` package remains in `iCourse/iCourse.csproj`.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```powershell
 git add iCourse/iCourse.csproj iCourse/Program.cs iCourse.sln iCourse.Tests/iCourse.Tests.csproj
@@ -159,7 +159,7 @@ git commit -m "chore: convert project shell to Avalonia"
 - Create: `iCourse/Services/DialogService.cs`
 - Create: `iCourse/Services/DesignTimeServices.cs`
 
-- [ ] **Step 1: Add app path service**
+- [x] **Step 1: Add app path service**
 
 Write `iCourse/Services/IAppPaths.cs`:
 
@@ -204,7 +204,7 @@ public sealed class AppPaths : IAppPaths
 }
 ```
 
-- [ ] **Step 2: Add UI dispatcher service**
+- [x] **Step 2: Add UI dispatcher service**
 
 Write `iCourse/Services/IUiDispatcher.cs`:
 
@@ -242,7 +242,7 @@ public sealed class AvaloniaUiDispatcher : IUiDispatcher
 }
 ```
 
-- [ ] **Step 3: Add lifetime service**
+- [x] **Step 3: Add lifetime service**
 
 Write `iCourse/Services/IAppLifetime.cs`:
 
@@ -288,7 +288,7 @@ public sealed class AppLifetime : IAppLifetime
 }
 ```
 
-- [ ] **Step 4: Add captcha image decoder**
+- [x] **Step 4: Add captcha image decoder**
 
 Write `iCourse/Services/IImageDecoder.cs`:
 
@@ -322,7 +322,7 @@ public sealed class AvaloniaImageDecoder : IImageDecoder
 }
 ```
 
-- [ ] **Step 5: Add dialog service**
+- [x] **Step 5: Add dialog service**
 
 Write `iCourse/Services/IDialogService.cs`:
 
@@ -413,7 +413,7 @@ public sealed class DialogService(IServiceProvider services) : IDialogService
 }
 ```
 
-- [ ] **Step 6: Add design-time service provider**
+- [x] **Step 6: Add design-time service provider**
 
 Write `iCourse/Services/DesignTimeServices.cs`:
 
@@ -442,7 +442,7 @@ public static class DesignTimeServices
 }
 ```
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```powershell
 git add iCourse/Services
@@ -458,7 +458,7 @@ git commit -m "feat: add Avalonia platform services"
 - Create: `iCourse/Views/MessageWindow.axaml.cs`
 - Create: `iCourse/ViewModels/MessageWindowViewModel.cs`
 
-- [ ] **Step 1: Replace WPF application XAML**
+- [x] **Step 1: Replace WPF application XAML**
 
 Write `iCourse/App.xaml`:
 
@@ -473,7 +473,7 @@ Write `iCourse/App.xaml`:
 </Application>
 ```
 
-- [ ] **Step 2: Replace app startup code**
+- [x] **Step 2: Replace app startup code**
 
 Write `iCourse/App.xaml.cs`:
 
@@ -562,7 +562,7 @@ public partial class App : Application
 }
 ```
 
-- [ ] **Step 3: Add reusable message window**
+- [x] **Step 3: Add reusable message window**
 
 Write `iCourse/ViewModels/MessageWindowViewModel.cs`:
 
@@ -626,7 +626,7 @@ public partial class MessageWindow : Window
 }
 ```
 
-- [ ] **Step 4: Build to reveal remaining migration errors**
+- [x] **Step 4: Build to reveal remaining migration errors**
 
 Run:
 
@@ -636,7 +636,7 @@ dotnet build iCourse.sln
 
 Expected: build fails because WPF views/view models still reference WPF namespaces. Record the errors before Task 4.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```powershell
 git add iCourse/App.xaml iCourse/App.xaml.cs iCourse/Views/MessageWindow.axaml iCourse/Views/MessageWindow.axaml.cs iCourse/ViewModels/MessageWindowViewModel.cs
@@ -655,7 +655,7 @@ git commit -m "feat: migrate app startup to Avalonia"
 - Modify: `iCourse/Helpers/Logger.cs`
 - Modify: `iCourse/Helpers/JLUiCourseApi.cs`
 
-- [ ] **Step 1: Replace credentials storage with app paths**
+- [x] **Step 1: Replace credentials storage with app paths**
 
 Write `iCourse/Models/UserCredentials.cs`:
 
@@ -782,7 +782,7 @@ public partial class UserCredentials(IAppPaths paths) : ObservableObject
 }
 ```
 
-- [ ] **Step 2: Replace logger dispatcher**
+- [x] **Step 2: Replace logger dispatcher**
 
 Write `iCourse/Helpers/Logger.cs`:
 
@@ -839,7 +839,7 @@ Then add this line in `App.OnFrameworkInitializationCompleted()` immediately aft
 ServiceProvider.GetRequiredService<Logger>().Initialize();
 ```
 
-- [ ] **Step 3: Replace `MainWindowViewModel` visibility properties with booleans**
+- [x] **Step 3: Replace `MainWindowViewModel` visibility properties with booleans**
 
 Write `iCourse/ViewModels/MainWindowViewModel.cs`:
 
@@ -981,7 +981,7 @@ public partial class MainWindowViewModel :
 }
 ```
 
-- [ ] **Step 4: Replace captcha view model image type**
+- [x] **Step 4: Replace captcha view model image type**
 
 Write `iCourse/ViewModels/CaptchaWindowViewModel.cs`:
 
@@ -1015,7 +1015,7 @@ public partial class CaptchaWindowViewModel : ObservableObject
 }
 ```
 
-- [ ] **Step 5: Replace disclaimer view model lifetime and paths**
+- [x] **Step 5: Replace disclaimer view model lifetime and paths**
 
 Write `iCourse/ViewModels/DisclaimerWindowViewModel.cs`:
 
@@ -1055,7 +1055,7 @@ public partial class DisclaimerViewModel(IAppPaths paths, IAppLifetime lifetime)
 }
 ```
 
-- [ ] **Step 6: Replace select batch view model dialog close**
+- [x] **Step 6: Replace select batch view model dialog close**
 
 Write `iCourse/ViewModels/SelectBatchWindowViewModel.cs`:
 
@@ -1095,7 +1095,7 @@ public partial class SelectBatchViewModel(UserCredentials credentials, JLUiCours
 }
 ```
 
-- [ ] **Step 7: Convert query course view model to injected API**
+- [x] **Step 7: Convert query course view model to injected API**
 
 Write `iCourse/ViewModels/QueryCourseWindowViewModel.cs`:
 
@@ -1177,7 +1177,7 @@ Update `DialogService.ShowQueryCoursesAsync()` before `ShowDialog`:
 await viewModel.InitializeAsync();
 ```
 
-- [ ] **Step 8: Replace UI responsibilities in API**
+- [x] **Step 8: Replace UI responsibilities in API**
 
 In `iCourse/Helpers/JLUiCourseApi.cs`, remove `using System.Windows;`, add `using iCourse.Services;`, and change the class constructor and fields:
 
@@ -1278,7 +1278,7 @@ lifetime.Restart();
 
 Replace every `Logger.WriteLine` with `logger.WriteLine`, every `App.ServiceProvider.GetService<UserCredentials>()` with `credentials`, and every `new Http(TimeSpan.FromSeconds(5))` with `new Http(TimeSpan.FromSeconds(5), logger)`.
 
-- [ ] **Step 9: Update HTTP helper constructor**
+- [x] **Step 9: Update HTTP helper constructor**
 
 Modify `iCourse/Helpers/Http.cs`:
 
@@ -1300,7 +1300,7 @@ class Http : HttpClient
 
 Then replace `Logger.WriteLine(...)` with `logger.WriteLine(...)` in this file.
 
-- [ ] **Step 10: Build and commit**
+- [x] **Step 10: Build and commit**
 
 Run:
 
@@ -1329,7 +1329,7 @@ git commit -m "refactor: remove WPF dependencies from view models"
 - Modify: matching `.xaml.cs` files to match Avalonia namespaces
 - Delete: old `.xaml` files after `.axaml` replacements compile
 
-- [ ] **Step 1: Rename XAML files**
+- [x] **Step 1: Rename XAML files**
 
 Run:
 
@@ -1342,7 +1342,7 @@ Rename-Item iCourse/Views/SelectBatchWindow.xaml SelectBatchWindow.axaml
 Rename-Item iCourse/Views/QueryCourseWindow.xaml QueryCourseWindow.axaml
 ```
 
-- [ ] **Step 2: Replace MainWindow**
+- [x] **Step 2: Replace MainWindow**
 
 Write `iCourse/Views/MainWindow.axaml`:
 
@@ -1428,7 +1428,7 @@ public partial class MainWindow : Window
 }
 ```
 
-- [ ] **Step 3: Replace LoginControl**
+- [x] **Step 3: Replace LoginControl**
 
 Write `iCourse/Views/LoginControl.axaml`:
 
@@ -1482,7 +1482,7 @@ public partial class LoginControl : UserControl
 }
 ```
 
-- [ ] **Step 4: Replace CaptchaWindow**
+- [x] **Step 4: Replace CaptchaWindow**
 
 Write `iCourse/Views/CaptchaWindow.axaml`:
 
@@ -1542,7 +1542,7 @@ public partial class CaptchaWindow : Window
 }
 ```
 
-- [ ] **Step 5: Replace DisclaimerWindow**
+- [x] **Step 5: Replace DisclaimerWindow**
 
 Write `iCourse/Views/DisclaimerWindow.axaml`:
 
@@ -1601,7 +1601,7 @@ public partial class DisclaimerWindow : Window
 }
 ```
 
-- [ ] **Step 6: Replace SelectBatchWindow**
+- [x] **Step 6: Replace SelectBatchWindow**
 
 Write `iCourse/Views/SelectBatchWindow.axaml`:
 
@@ -1667,7 +1667,7 @@ public partial class SelectBatchWindow : Window
 }
 ```
 
-- [ ] **Step 7: Replace QueryCourseWindow**
+- [x] **Step 7: Replace QueryCourseWindow**
 
 Write `iCourse/Views/QueryCourseWindow.axaml`:
 
@@ -1757,7 +1757,7 @@ public partial class QueryCourseWindow : Window
 }
 ```
 
-- [ ] **Step 8: Build and commit**
+- [x] **Step 8: Build and commit**
 
 Run:
 
@@ -1780,7 +1780,7 @@ git commit -m "feat: port windows to Avalonia"
 - Delete: `iCourse/Helpers/AutoScrollBehavior.cs`
 - Create: `iCourse/Behaviors/AutoScrollToEndBehavior.cs`
 
-- [ ] **Step 1: Delete WPF/HandyControl behavior**
+- [x] **Step 1: Delete WPF/HandyControl behavior**
 
 Run:
 
@@ -1788,7 +1788,7 @@ Run:
 Remove-Item iCourse/Helpers/AutoScrollBehavior.cs
 ```
 
-- [ ] **Step 2: Add Avalonia attached behavior**
+- [x] **Step 2: Add Avalonia attached behavior**
 
 Write `iCourse/Behaviors/AutoScrollToEndBehavior.cs`:
 
@@ -1844,7 +1844,7 @@ public static class AutoScrollToEndBehavior
 }
 ```
 
-- [ ] **Step 3: Verify no HandyControl/WPF behavior references remain**
+- [x] **Step 3: Verify no HandyControl/WPF behavior references remain**
 
 Run:
 
@@ -1854,7 +1854,7 @@ rg "HandyControl|AutoScrollBehavior|System.Windows.Controls|System.Windows.Media
 
 Expected: no matches.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```powershell
 git add iCourse/Behaviors/AutoScrollToEndBehavior.cs iCourse/Helpers/AutoScrollBehavior.cs
@@ -1871,7 +1871,7 @@ git commit -m "refactor: replace WPF scroll behavior"
 - Create: `iCourse.Tests/Helpers/LoggerTests.cs`
 - Create: `iCourse.Tests/ViewModels/MainWindowViewModelTests.cs`
 
-- [ ] **Step 1: Configure test project**
+- [x] **Step 1: Configure test project**
 
 Write `iCourse.Tests/iCourse.Tests.csproj`:
 
@@ -1898,7 +1898,7 @@ Write `iCourse.Tests/iCourse.Tests.csproj`:
 </Project>
 ```
 
-- [ ] **Step 2: Add test fakes**
+- [x] **Step 2: Add test fakes**
 
 Write `iCourse.Tests/Fakes/FakeAppPaths.cs`:
 
@@ -1932,7 +1932,7 @@ internal sealed class ImmediateUiDispatcher : IUiDispatcher
 }
 ```
 
-- [ ] **Step 3: Test credential persistence**
+- [x] **Step 3: Test credential persistence**
 
 Write `iCourse.Tests/Models/UserCredentialsTests.cs`:
 
@@ -1972,7 +1972,7 @@ public sealed class UserCredentialsTests
 }
 ```
 
-- [ ] **Step 4: Test logger collection updates**
+- [x] **Step 4: Test logger collection updates**
 
 Write `iCourse.Tests/Helpers/LoggerTests.cs`:
 
@@ -2002,7 +2002,7 @@ public sealed class LoggerTests
 }
 ```
 
-- [ ] **Step 5: Add view model state test**
+- [x] **Step 5: Add view model state test**
 
 Write `iCourse.Tests/ViewModels/MainWindowViewModelTests.cs`:
 
@@ -2021,7 +2021,7 @@ public sealed class MainWindowViewModelTests
 
 After `JLUiCourseApi` is split enough for easy faking, replace this smoke test with a constructor-level test using fake API/dialog services. Keep this temporary smoke test only until Task 8 completes.
 
-- [ ] **Step 6: Run tests**
+- [x] **Step 6: Run tests**
 
 Run:
 
@@ -2031,7 +2031,7 @@ dotnet test iCourse.sln
 
 Expected: tests pass.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```powershell
 git add iCourse.Tests
@@ -2047,7 +2047,7 @@ git commit -m "test: add cross-platform service tests"
 - Modify: `iCourse/ViewModels/QueryCourseWindowViewModel.cs`
 - Modify: `iCourse.Tests/ViewModels/MainWindowViewModelTests.cs`
 
-- [ ] **Step 1: Add API interface**
+- [x] **Step 1: Add API interface**
 
 Write `iCourse/Services/IJLUiCourseApi.cs`:
 
@@ -2067,7 +2067,7 @@ public interface IJLUiCourseApi
 }
 ```
 
-- [ ] **Step 2: Implement interface and register it**
+- [x] **Step 2: Implement interface and register it**
 
 Change the class declaration:
 
@@ -2082,7 +2082,7 @@ services.AddSingleton<IJLUiCourseApi, JLUiCourseApi>();
 services.AddSingleton<JLUiCourseApi>();
 ```
 
-- [ ] **Step 3: Use interface in view models**
+- [x] **Step 3: Use interface in view models**
 
 Change constructor parameters:
 
@@ -2094,7 +2094,7 @@ public MainWindowViewModel(IJLUiCourseApi api, UserCredentials credentials, Logg
 public partial class QueryCourseWindowViewModel(IJLUiCourseApi api) : ObservableObject
 ```
 
-- [ ] **Step 4: Replace smoke test with real test**
+- [x] **Step 4: Replace smoke test with real test**
 
 Write `iCourse.Tests/ViewModels/MainWindowViewModelTests.cs`:
 
@@ -2146,7 +2146,7 @@ public sealed class MainWindowViewModelTests
 }
 ```
 
-- [ ] **Step 5: Run tests and build**
+- [x] **Step 5: Run tests and build**
 
 Run:
 
@@ -2157,7 +2157,7 @@ dotnet build iCourse.sln -c Release
 
 Expected: both pass.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```powershell
 git add iCourse/Services/IJLUiCourseApi.cs iCourse/Helpers/JLUiCourseApi.cs iCourse/ViewModels iCourse/App.xaml.cs iCourse.Tests/ViewModels/MainWindowViewModelTests.cs
@@ -2171,7 +2171,7 @@ git commit -m "refactor: introduce testable course api boundary"
 - Modify: `.github/workflows/build.yml`
 - Modify: `README.md`
 
-- [ ] **Step 1: Replace main CI workflow**
+- [x] **Step 1: Replace main CI workflow**
 
 Write `.github/workflows/dotnet.yml`:
 
@@ -2221,7 +2221,7 @@ jobs:
           path: publish/${{ matrix.os }}
 ```
 
-- [ ] **Step 2: Remove duplicate WPF workflow**
+- [x] **Step 2: Remove duplicate WPF workflow**
 
 Write `.github/workflows/build.yml`:
 
@@ -2239,7 +2239,7 @@ jobs:
         run: echo "The WPF workflow is retired. Use dotnet.yml for Avalonia cross-platform builds."
 ```
 
-- [ ] **Step 3: Rewrite README in UTF-8 Chinese**
+- [x] **Step 3: Rewrite README in UTF-8 Chinese**
 
 Write `README.md`:
 
@@ -2277,7 +2277,7 @@ dotnet publish iCourse/iCourse.csproj -c Release -r osx-arm64 --self-contained f
 本软件完全免费，仅供学习和研究使用。请勿将其用于任何违反学校或相关法律法规的行为。用户需自行承担使用本软件所产生的后果，开发者不对因使用本软件造成的任何直接或间接损失负责。本软件未经吉林大学官方授权，与吉林大学无任何直接或间接关联。
 ```
 
-- [ ] **Step 4: Run matrix-equivalent local checks**
+- [x] **Step 4: Run matrix-equivalent local checks**
 
 Run:
 
@@ -2290,7 +2290,7 @@ dotnet publish iCourse/iCourse.csproj -c Release -r osx-x64 --self-contained fal
 
 Expected: all commands pass.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```powershell
 git add .github/workflows/dotnet.yml .github/workflows/build.yml README.md
