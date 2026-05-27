@@ -18,6 +18,7 @@ public static class DesignTimeServices
         services.AddSingleton<Logger>();
         services.AddSingleton<UserCredentials>();
         services.AddSingleton<JLUiCourseApi>();
+        services.AddSingleton<IJLUiCourseApi>(provider => provider.GetRequiredService<JLUiCourseApi>());
         return services.BuildServiceProvider();
     }
 }

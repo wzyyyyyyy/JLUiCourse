@@ -52,6 +52,7 @@ public sealed class DialogService(IServiceProvider services) : IDialogService
         {
             var viewModel = ActivatorUtilities.CreateInstance<QueryCourseWindowViewModel>(services);
             var window = new QueryCourseWindow { DataContext = viewModel };
+            await viewModel.InitializeAsync();
             await window.ShowDialog(GetOwnerOrThrow());
         });
     }
