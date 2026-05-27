@@ -1,38 +1,34 @@
-[![Build](https://github.com/wzyyyyyyy/JLUiCourse/actions/workflows/dotnet.yml/badge.svg)](https://github.com/wzyyyyyyy/JLUiCourse/actions/workflows/dotnet.yml)  ![downloads](https://img.shields.io/github/downloads/wzyyyyyyy/JLUiCourse/total.svg)
- 
-### 如果觉得不错的话，就给我一个star吧，本项目正在使用Avalonia重构
+# JLUiCourse
 
-## 使用方法
+[![Build](https://github.com/wzyyyyyyy/JLUiCourse/actions/workflows/dotnet.yml/badge.svg)](https://github.com/wzyyyyyyy/JLUiCourse/actions/workflows/dotnet.yml)
+![downloads](https://img.shields.io/github/downloads/wzyyyyyyy/JLUiCourse/total.svg)
 
-### 1. 下载和安装
+JLUiCourse 是一个用于学习和研究的吉林大学选课辅助桌面客户端。当前版本已迁移到 Avalonia，可在 Windows、Linux 和 macOS 上构建运行。
 
-在 [Action](https://github.com/wzyyyyyyy/JLUiCourse/actions)或 [Release](https://github.com/wzyyyyyyy/JLUiCourse/releases)下载最新版本的软件，并确保安装了 [.Net8](https://dotnet.microsoft.com/zh-cn/download)。
+## 运行
 
-### 2. 配置
+安装 .NET 8 SDK 后执行：
 
-在使用前，需要进行一些配置：
-- **收藏夹课程**: 在选课网站上将要选的课添加到收藏里面，再使用本软件进行抢课！！！
+```powershell
+dotnet restore
+dotnet run --project iCourse/iCourse.csproj
+```
 
-### 3. 启动软件
+## 发布
 
-以管理员身份启动软件并等待其自动抢课。
+```powershell
+dotnet publish iCourse/iCourse.csproj -c Release -r win-x64 --self-contained false -o publish/win-x64
+dotnet publish iCourse/iCourse.csproj -c Release -r linux-x64 --self-contained false -o publish/linux-x64
+dotnet publish iCourse/iCourse.csproj -c Release -r osx-x64 --self-contained false -o publish/osx-x64
+dotnet publish iCourse/iCourse.csproj -c Release -r osx-arm64 --self-contained false -o publish/osx-arm64
+```
 
-### 4. 注意事项
+## 使用前配置
 
-- **合理使用**: 请勿滥用此软件，以免影响其他用户正常选课。
-- **稳定网络**: 确保使用时有稳定的网络连接，以免因网络问题导致抢课失败。
-
-### 5. 反馈与支持
-
-如果在使用过程中遇到问题或有改进建议，请发issue或联系开发者获取支持。
+- 在选课网站中将目标课程加入收藏，再使用本软件进行选课。
+- 保持网络连接稳定。
+- 账号、密码、日志和“下次不再显示免责声明”配置保存在当前系统用户的应用数据目录中。
 
 ## 免责声明
 
-- 本软件仅供学习和研究使用，请勿将其用于任何违反学校或相关法律法规的行为。
-- 使用本软件所产生的一切后果均由用户自行承担，开发者不对任何因使用本软件造成的直接或间接损失负责。
-- 用户在使用本软件的过程中，需遵守所在机构及国家的相关法律法规，如因使用本软件违反相关规定，责任由用户自行承担。
-- 本软件未经吉林大学官方授权，与吉林大学无任何直接或间接关联。
-
-### To-Do List
-- [ ] 自动排查课程冲突
-- [ ] 通知功能
+本软件完全免费，仅供学习和研究使用。请勿将其用于任何违反学校或相关法律法规的行为。用户需自行承担使用本软件所产生的后果，开发者不对因使用本软件造成的任何直接或间接损失负责。本软件未经吉林大学官方授权，与吉林大学无任何直接或间接关联。
