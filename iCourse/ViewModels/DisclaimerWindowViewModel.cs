@@ -1,38 +1,33 @@
-﻿using CommunityToolkit.Mvvm.ComponentModel;
+using Avalonia.Controls;
+using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using CommunityToolkit.Mvvm.Messaging;
-using iCourse.Messages;
+using iCourse.Services;
 using System.IO;
-using System.Windows;
 
-namespace iCourse.ViewModels
+namespace iCourse.ViewModels;
+
+public partial class DisclaimerViewModel(IAppPaths paths, IAppLifetime lifetime) : ObservableObject
 {
-    partial class DisclaimerViewModel : ObservableObject
+    [ObservableProperty]
+    private bool isAgreed;
+
+    [ObservableProperty]
+    private bool noShowNextTime;
+
+    [RelayCommand]
+    private void Agree(Window window)
     {
-        [ObservableProperty]
-        private bool isAgreed = false;
-
-        [ObservableProperty]
-        private bool noShowNextTime;
-
-        [RelayCommand]
-        private void Agree()
+        if (NoShowNextTime)
         {
-            IsAgreed = true;
-
-            if (NoShowNextTime)
-            {
-                File.Create(".noshow").Dispose();
-            }
-
-            WeakReferenceMessenger.Default.Send<CloseWindowMessage>(new CloseWindowMessage(typeof(DisclaimerViewModel)));
+            File.WriteAllText(paths.NoShowDisclaimerFilePath, "1");
         }
 
-        [RelayCommand]
-        private void Decline()
-        {
-            Application.Current.Shutdown();
-            throw new Exception("Disclaimer disagree.");
-        }
+        window.Close(true);
+    }
+
+    [RelayCommand]
+    private void Decline()
+    {
+        lifetime.Shutdown();
     }
 }

@@ -1,53 +1,37 @@
-﻿using CommunityToolkit.Mvvm.ComponentModel;
+using Avalonia.Controls;
+using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using CommunityToolkit.Mvvm.Messaging;
 using iCourse.Helpers;
-using iCourse.Messages;
 using iCourse.Models;
-using Microsoft.Extensions.DependencyInjection;
-using System.Windows;
+using iCourse.Services;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 
-namespace iCourse.ViewModels
+namespace iCourse.ViewModels;
+
+public partial class SelectBatchViewModel(
+    UserCredentials credentials,
+    JLUiCourseApi api,
+    IDialogService dialogs,
+    IReadOnlyList<BatchInfo> batchList) : ObservableObject
 {
-    partial class SelectBatchViewModel : ObservableObject
+    [ObservableProperty]
+    private IReadOnlyList<BatchInfo> batchList = batchList;
+
+    [ObservableProperty]
+    private BatchInfo? selectedBatch;
+
+    [RelayCommand]
+    private async Task ConfirmSelection(Window window)
     {
-        [ObservableProperty]
-        private List<BatchInfo> batchList;
-
-        [ObservableProperty]
-        private BatchInfo selectedBatch;
-
-        public SelectBatchViewModel()
+        if (SelectedBatch is null)
         {
-            // Provide some default value or handle initialization without parameters
-            BatchList = [];
+            await dialogs.ShowMessageAsync("提示", "请选择一个批次");
+            return;
         }
 
-        public SelectBatchViewModel(List<BatchInfo> batchList)
-        {
-            BatchList = batchList;
-        }
-
-        [RelayCommand]
-        private void ConfirmSelection()
-        {
-            if (SelectedBatch == null)
-            {
-                MessageBox.Show("请选择一个批次");
-                return;
-            }
-
-            App.ServiceProvider.GetService<UserCredentials>().LastBatchId = SelectedBatch.batchId;
-
-            App.ServiceProvider.GetService<JLUiCourseApi>().SetBatchIdAsync(selectedBatch);
-
-            WeakReferenceMessenger.Default.Send<CloseWindowMessage>(new CloseWindowMessage(typeof(SelectBatchViewModel)));
-        }
-
-        public static void ShowWindow(List<BatchInfo> batchInfos)
-        {
-            WeakReferenceMessenger.Default.Send<ShowWindowMessage>(new ShowWindowMessage(typeof(SelectBatchViewModel),
-                batchInfos));
-        }
+        credentials.LastBatchId = SelectedBatch.batchId;
+        _ = api.SetBatchIdAsync(SelectedBatch);
+        window.Close(SelectedBatch);
     }
 }

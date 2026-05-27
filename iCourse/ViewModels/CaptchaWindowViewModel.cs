@@ -1,49 +1,27 @@
-﻿using CommunityToolkit.Mvvm.ComponentModel;
+using Avalonia.Controls;
+using Avalonia.Media.Imaging;
+using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using CommunityToolkit.Mvvm.Messaging;
-using iCourse.Messages;
-using System.IO;
-using System.Windows.Media.Imaging;
+using iCourse.Services;
 
-namespace iCourse.ViewModels
+namespace iCourse.ViewModels;
+
+public partial class CaptchaWindowViewModel : ObservableObject
 {
-    partial class CaptchaWindowViewModel : ObservableObject
+    [ObservableProperty]
+    private string captcha = string.Empty;
+
+    [ObservableProperty]
+    private Bitmap imageSource;
+
+    public CaptchaWindowViewModel(IImageDecoder imageDecoder, string base64Image)
     {
-        [ObservableProperty]
-        private string captcha;
+        ImageSource = imageDecoder.DecodeBase64Bitmap(base64Image);
+    }
 
-        [ObservableProperty]
-        private BitmapImage imageSource;
-
-        public CaptchaWindowViewModel() { }
-
-        public CaptchaWindowViewModel(string base64Image)
-        {
-            LoadCaptchaImage(base64Image);
-        }
-
-        private void LoadCaptchaImage(string base64Image)
-        {
-            var imageBytes = Convert.FromBase64String(base64Image);
-
-            var bitmap = new BitmapImage();
-            bitmap.BeginInit();
-            bitmap.StreamSource = new MemoryStream(imageBytes);
-            bitmap.EndInit();
-
-            ImageSource = bitmap;
-        }
-
-        [RelayCommand]
-        private void CloseWindow()
-        {
-            WeakReferenceMessenger.Default.Send<AttemptLoginMessage>(new AttemptLoginMessage(Captcha));
-            WeakReferenceMessenger.Default.Send<CloseWindowMessage>(new CloseWindowMessage(typeof(CaptchaWindowViewModel)));
-        }
-
-        public static void ShowWindow(string base64Image)
-        {
-            WeakReferenceMessenger.Default.Send<ShowWindowMessage>(new ShowWindowMessage(typeof(CaptchaWindowViewModel), base64Image));
-        }
+    [RelayCommand]
+    private void CloseWindow(Window window)
+    {
+        window.Close(Captcha);
     }
 }

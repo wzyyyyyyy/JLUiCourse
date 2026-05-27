@@ -1,43 +1,44 @@
-﻿using Serilog;
+using iCourse.Services;
+using Serilog;
+using System;
 using System.Collections.ObjectModel;
 using System.IO;
-using System.Windows;
 
-namespace iCourse.Helpers
+namespace iCourse.Helpers;
+
+public sealed class Logger(IUiDispatcher dispatcher, IAppPaths paths) : IDisposable
 {
-    public class Logger
+    public ObservableCollection<string> LogMessages { get; } = new();
+
+    private const int MaxLogEntries = 1145;
+
+    public void Initialize()
     {
-        public ObservableCollection<string> LogMessages { get; } = new();
+        var logPath = Path.Combine(paths.LogDirectory, "log.txt");
+        Log.Logger = new LoggerConfiguration()
+            .MinimumLevel.Debug()
+            .WriteTo.File(logPath, rollingInterval: RollingInterval.Minute)
+            .CreateLogger();
+    }
 
-        private const int MaxLogEntries = 1145;
+    public void WriteLine<T>(T msg)
+    {
+        var logMsg = $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}]{msg?.ToString()}";
+        Log.Information(logMsg);
 
-        public Logger()
+        dispatcher.Post(() =>
         {
-            string logPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Logs", "log.txt");
-            Log.Logger = new LoggerConfiguration()
-                .MinimumLevel.Debug()
-                .WriteTo.File(logPath
-                , rollingInterval: RollingInterval.Minute)
-                .CreateLogger();
-        }
+            LogMessages.Add(logMsg);
 
-        public void WriteLine<T>(T msg)
-        {
-            var logMsg = $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}]{msg?.ToString()}";
-            Log.Information(logMsg);
-
-            Application.Current.Dispatcher.Invoke(() =>
+            if (LogMessages.Count > MaxLogEntries)
             {
-                LogMessages.Add(logMsg);
+                LogMessages.RemoveAt(0);
+            }
+        });
+    }
 
-                if (LogMessages.Count > MaxLogEntries)
-                {
-                    //Remove the oldest entry
-                    LogMessages.RemoveAt(0);
-                }
-            });
-        }
-
-        public void Dispose() => Log.CloseAndFlush();
+    public void Dispose()
+    {
+        Log.CloseAndFlush();
     }
 }
