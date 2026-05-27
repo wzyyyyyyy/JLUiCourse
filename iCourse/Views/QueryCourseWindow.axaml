@@ -1,0 +1,67 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="iCourse.Views.QueryCourseWindow"
+        Title="查询课程"
+        Height="600"
+        Width="835"
+        WindowStartupLocation="CenterOwner"
+        Background="#1F1F1F">
+  <Grid RowDefinitions="Auto,*,Auto" ColumnDefinitions="Auto,*,Auto" Margin="10">
+    <TextBlock Text="课程名:"
+               VerticalAlignment="Center"
+               Margin="0,0,10,0"
+               Foreground="White" />
+    <TextBox Grid.Column="1"
+             Text="{Binding QueryText}"
+             Foreground="White"
+             Background="#252526" />
+    <Button Grid.Column="2"
+            Content="查询"
+            Margin="10,0,0,0"
+            Width="89"
+            Command="{Binding QueryCommand}"
+            IsEnabled="{Binding ButtonEnabled}" />
+
+    <DataGrid Grid.Row="1"
+              Grid.ColumnSpan="3"
+              Margin="0,10"
+              AutoGenerateColumns="False"
+              ItemsSource="{Binding Courses}">
+      <DataGrid.Columns>
+        <DataGridTextColumn Header="课程名称" Binding="{Binding Name}" Width="150" IsReadOnly="True"/>
+        <DataGridTextColumn Header="校区" Binding="{Binding Campus}" Width="100" IsReadOnly="True"/>
+        <DataGridTextColumn Header="上课时间地点" Binding="{Binding ClassLocation}" Width="220" IsReadOnly="True"/>
+        <DataGridTextColumn Header="课程性质" Binding="{Binding SelectType}" Width="100" IsReadOnly="True"/>
+        <DataGridTextColumn Header="上课教师" Binding="{Binding TeacherName}" Width="150" IsReadOnly="True"/>
+        <DataGridTemplateColumn Header="操作" Width="90">
+          <DataGridTemplateColumn.CellTemplate>
+            <DataTemplate>
+              <Button Content="收藏"
+                      Width="60"
+                      Command="{Binding DataContext.AddToFavoritesCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                      CommandParameter="{Binding}" />
+            </DataTemplate>
+          </DataGridTemplateColumn.CellTemplate>
+        </DataGridTemplateColumn>
+      </DataGrid.Columns>
+    </DataGrid>
+
+    <StackPanel Grid.Row="2"
+                Grid.ColumnSpan="3"
+                Orientation="Horizontal"
+                HorizontalAlignment="Center"
+                Spacing="10">
+      <Button Content="上一页"
+              Width="80"
+              Command="{Binding PreviousPageCommand}"
+              IsEnabled="{Binding ButtonEnabled}" />
+      <TextBlock Text="{Binding CurrentPage}"
+                 Foreground="White"
+                 VerticalAlignment="Center" />
+      <Button Content="下一页"
+              Width="80"
+              Command="{Binding NextPageCommand}"
+              IsEnabled="{Binding ButtonEnabled}" />
+    </StackPanel>
+  </Grid>
+</Window>

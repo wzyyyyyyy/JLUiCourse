@@ -1,0 +1,31 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="iCourse.Views.LoginControl">
+  <StackPanel Spacing="12" Width="180">
+    <TextBlock Text="账号:" Foreground="White" FontSize="14" />
+    <TextBox Text="{Binding Username, Mode=TwoWay}" />
+
+    <TextBlock Text="密码:" Foreground="White" FontSize="14" />
+    <TextBox Text="{Binding Password, Mode=TwoWay}" PasswordChar="*" />
+
+    <CheckBox Content="自动选择批次"
+              Foreground="White"
+              IsChecked="{Binding AutoSelectBatch, Mode=TwoWay}" />
+    <CheckBox Content="自动登录"
+              Foreground="White"
+              IsChecked="{Binding AutoLogin, Mode=TwoWay}" />
+
+    <Button Content="登录"
+            Height="32"
+            IsVisible="{Binding CanLogin}"
+            Command="{Binding LoginCommand}" />
+    <Button Content="开始选课"
+            Height="32"
+            IsVisible="{Binding AreAfterLoginButtonsVisible}"
+            Command="{Binding StartSelectCourseCommand}" />
+    <Button Content="查询课程"
+            Height="32"
+            IsVisible="{Binding AreAfterLoginButtonsVisible}"
+            Command="{Binding QueryCoursesCommand}" />
+  </StackPanel>
+</UserControl>

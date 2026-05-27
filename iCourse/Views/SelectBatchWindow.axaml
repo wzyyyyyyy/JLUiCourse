@@ -1,0 +1,43 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="iCourse.Views.SelectBatchWindow"
+        Title="选课批次"
+        Height="465"
+        Width="600"
+        WindowStartupLocation="CenterOwner"
+        Background="#2E2E2E">
+  <Grid ColumnDefinitions="*,2*" Margin="10">
+    <ListBox ItemsSource="{Binding BatchList}"
+             SelectedItem="{Binding SelectedBatch}"
+             Background="#454545">
+      <ListBox.ItemTemplate>
+        <DataTemplate>
+          <TextBlock Text="{Binding batchName}" Foreground="White" />
+        </DataTemplate>
+      </ListBox.ItemTemplate>
+    </ListBox>
+    <StackPanel Grid.Column="1" Margin="20,10,0,10" Spacing="6">
+      <TextBlock Text="轮次码:" FontWeight="Bold" Foreground="White"/>
+      <TextBlock Text="{Binding SelectedBatch.batchId}" Foreground="White"/>
+      <TextBlock Text="轮次名:" FontWeight="Bold" Foreground="White"/>
+      <TextBlock Text="{Binding SelectedBatch.batchName}" Foreground="White"/>
+      <TextBlock Text="开始时间:" FontWeight="Bold" Foreground="White"/>
+      <TextBlock Text="{Binding SelectedBatch.beginTime}" Foreground="White"/>
+      <TextBlock Text="结束时间:" FontWeight="Bold" Foreground="White"/>
+      <TextBlock Text="{Binding SelectedBatch.endTime}" Foreground="White"/>
+      <TextBlock Text="选课策略:" FontWeight="Bold" Foreground="White"/>
+      <TextBlock Text="{Binding SelectedBatch.tacticName}" Foreground="White"/>
+      <TextBlock Text="不可选原因:" FontWeight="Bold" Foreground="White"/>
+      <TextBlock Text="{Binding SelectedBatch.noSelectReason}" Foreground="White"/>
+      <TextBlock Text="选课类型:" FontWeight="Bold" Foreground="White"/>
+      <TextBlock Text="{Binding SelectedBatch.typeName}" Foreground="White"/>
+      <TextBlock Text="是否可选:" FontWeight="Bold" Foreground="White"/>
+      <TextBlock Text="{Binding SelectedBatch.canSelect}" Foreground="White"/>
+      <Button Content="确定"
+              Width="100"
+              HorizontalAlignment="Center"
+              Command="{Binding ConfirmSelectionCommand}"
+              CommandParameter="{Binding $parent[Window]}" />
+    </StackPanel>
+  </Grid>
+</Window>

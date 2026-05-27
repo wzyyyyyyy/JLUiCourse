@@ -1,0 +1,41 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:views="clr-namespace:iCourse.Views"
+        xmlns:behaviors="clr-namespace:iCourse.Behaviors"
+        x:Class="iCourse.Views.MainWindow"
+        Title="iCourse"
+        Width="680"
+        Height="420"
+        MinWidth="620"
+        MinHeight="380"
+        WindowStartupLocation="CenterScreen"
+        Background="#1F1F1F">
+  <Grid ColumnDefinitions="220,*" RowDefinitions="*,Auto" Margin="16">
+    <views:LoginControl Grid.RowSpan="2" />
+
+    <Border Grid.Column="1"
+            Background="#2E2E2E"
+            Padding="10"
+            Margin="16,0,0,12">
+      <ScrollViewer behaviors:AutoScrollToEndBehavior.ItemsSource="{Binding LogMessages}">
+        <ItemsControl ItemsSource="{Binding LogMessages}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate>
+              <TextBlock Text="{Binding}"
+                         Foreground="White"
+                         FontSize="14"
+                         TextWrapping="Wrap"
+                         Margin="0,0,0,6" />
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </ScrollViewer>
+    </Border>
+
+    <ProgressBar Grid.Column="1"
+                 Grid.Row="1"
+                 Margin="16,0,0,0"
+                 IsVisible="{Binding IsProgressVisible}"
+                 Value="{Binding ProgressValue}" />
+  </Grid>
+</Window>

@@ -1,0 +1,37 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="iCourse.Views.CaptchaWindow"
+        Title="验证码"
+        Height="250"
+        Width="260"
+        WindowStartupLocation="CenterOwner"
+        Background="#1F1F1F"
+        Topmost="True">
+  <Grid RowDefinitions="Auto,Auto,Auto" ColumnDefinitions="*,Auto" Margin="16">
+    <TextBlock Text="请输入验证码："
+               FontSize="14"
+               Foreground="White"
+               Grid.ColumnSpan="2" />
+    <Image Grid.Row="1"
+           Grid.ColumnSpan="2"
+           Height="80"
+           Margin="0,12"
+           Source="{Binding ImageSource}" />
+    <TextBox Grid.Row="2"
+             Text="{Binding Captcha}"
+             Width="145">
+      <TextBox.KeyBindings>
+        <KeyBinding Gesture="Enter"
+                    Command="{Binding CloseWindowCommand}"
+                    CommandParameter="{Binding $parent[Window]}" />
+      </TextBox.KeyBindings>
+    </TextBox>
+    <Button Grid.Row="2"
+            Grid.Column="1"
+            Content="确定"
+            Width="64"
+            Margin="10,0,0,0"
+            Command="{Binding CloseWindowCommand}"
+            CommandParameter="{Binding $parent[Window]}" />
+  </Grid>
+</Window>

@@ -1,0 +1,36 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="iCourse.Views.DisclaimerWindow"
+        Title="免责协议"
+        Height="335"
+        Width="380"
+        CanResize="False"
+        WindowStartupLocation="CenterOwner"
+        Background="#1F1F1F">
+  <Grid RowDefinitions="*,Auto,Auto,Auto" Margin="20">
+    <TextBlock TextWrapping="Wrap"
+               Foreground="White"
+               Text="本软件完全免费，仅供学习和研究使用。请勿将其用于任何违反学校或相关法律法规的行为。用户需自行承担使用本软件所产生的后果，开发者不对因使用本软件造成的任何直接或间接损失负责。在使用本软件过程中，用户应遵守所在机构及国家的相关法律法规。如因使用本软件违反相关规定，责任由用户自行承担。本软件未经吉林大学官方授权，与吉林大学无任何直接或间接关联。" />
+    <CheckBox Grid.Row="1"
+              Content="我已阅读并同意"
+              Foreground="White"
+              IsChecked="{Binding IsAgreed}" />
+    <CheckBox Grid.Row="2"
+              Content="下次启动时不再显示"
+              Foreground="White"
+              IsChecked="{Binding NoShowNextTime}" />
+    <StackPanel Grid.Row="3"
+                Orientation="Horizontal"
+                HorizontalAlignment="Center"
+                Spacing="10">
+      <Button Content="同意"
+              Width="100"
+              IsEnabled="{Binding IsAgreed}"
+              Command="{Binding AgreeCommand}"
+              CommandParameter="{Binding $parent[Window]}" />
+      <Button Content="拒绝"
+              Width="100"
+              Command="{Binding DeclineCommand}" />
+    </StackPanel>
+  </Grid>
+</Window>
