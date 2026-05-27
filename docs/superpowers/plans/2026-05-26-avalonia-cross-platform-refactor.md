@@ -2302,7 +2302,7 @@ git commit -m "ci: build Avalonia app cross-platform"
 **Files:**
 - Inspect all changed files.
 
-- [ ] **Step 1: Search for remaining WPF-only dependencies**
+- [x] **Step 1: Search for remaining WPF-only dependencies**
 
 Run:
 
@@ -2312,7 +2312,7 @@ rg "System.Windows|UseWPF|HandyControl|Microsoft.WindowsDesktop|net8.0-windows|W
 
 Expected: no `System.Windows`, `UseWPF`, `HandyControl`, `Microsoft.WindowsDesktop`, or `net8.0-windows` matches. `WindowStartupLocation="CenterScreen"` should only appear if Avalonia accepts it in the current version; otherwise replace it with `CenterOwner` or set startup position in code.
 
-- [ ] **Step 2: Run full validation**
+- [x] **Step 2: Run full validation**
 
 Run:
 
@@ -2328,7 +2328,7 @@ dotnet publish iCourse/iCourse.csproj -c Release -r osx-arm64 --self-contained f
 
 Expected: every command exits successfully.
 
-- [ ] **Step 3: Manual UI smoke test**
+- [x] **Step 3: Manual UI smoke test** (skipped — cannot run GUI in headless environment)
 
 Run:
 
@@ -2346,7 +2346,7 @@ Expected:
 - Batch selection window displays returned batches.
 - Query courses window displays a data grid and pagination controls.
 
-- [ ] **Step 4: Commit any final fixes**
+- [x] **Step 4: Commit any final fixes**
 
 ```powershell
 git status --short
