@@ -7,7 +7,7 @@ JLUiCourse 是一个用于学习和研究的吉林大学选课辅助桌面客户
 
 ## 运行
 
-安装 .NET 8 SDK 后执行：
+安装 .NET 10 SDK 后执行：
 
 ```powershell
 dotnet restore
@@ -22,6 +22,27 @@ dotnet publish iCourse/iCourse.csproj -c Release -r linux-x64 --self-contained f
 dotnet publish iCourse/iCourse.csproj -c Release -r osx-x64 --self-contained false -o publish/osx-x64
 dotnet publish iCourse/iCourse.csproj -c Release -r osx-arm64 --self-contained false -o publish/osx-arm64
 ```
+
+## 打包安装包
+
+仓库提供了三平台安装包脚本，GitHub Actions 中的 `Package Installers` workflow 可手动触发，也会在推送 `v*` 标签时运行。
+
+本地打包命令：
+
+```powershell
+# Windows: 需要先安装 Inno Setup 6
+.\scripts\package\windows.ps1
+```
+
+```bash
+# Linux: 生成 .deb 和 .tar.gz
+bash scripts/package/linux.sh
+
+# macOS: 生成未签名、未公证的 .dmg，包含 arm64 和 x64 两个 app
+bash scripts/package/macos.sh
+```
+
+macOS 说明：当前没有 Apple Developer ID 证书，因此生成的是 unsigned / not notarized 的 DMG。首次打开时 macOS Gatekeeper 可能提示“不安全”或阻止打开。可以通过右键（或 Control-click）点击应用选择“打开”，或在“系统设置 > 隐私与安全性”中允许打开。要彻底消除该提示，需要 Apple Developer ID 证书签名并完成 notarization。
 
 ## 使用前配置
 

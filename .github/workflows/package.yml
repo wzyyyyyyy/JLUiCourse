@@ -1,0 +1,118 @@
+name: Package Installers
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Package version, for example 1.1.0"
+        required: false
+        default: "1.0.0"
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  windows:
+    name: Windows installer
+    runs-on: windows-latest
+    env:
+      PACKAGE_VERSION: ${{ github.event.inputs.version || github.ref_name }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Normalize version
+        shell: pwsh
+        run: |
+          $version = "${env:PACKAGE_VERSION}".TrimStart("v")
+          "PACKAGE_VERSION=$version" | Out-File -FilePath $env:GITHUB_ENV -Append
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Install Inno Setup
+        run: choco install innosetup --no-progress
+
+      - name: Restore dependencies
+        run: dotnet restore
+
+      - name: Test
+        run: dotnet test --configuration Release
+
+      - name: Build installer
+        shell: pwsh
+        run: ./scripts/package/windows.ps1
+
+      - name: Upload Windows installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: iCourse-windows-x64-installer
+          path: artifacts/windows/*.exe
+
+  linux:
+    name: Linux installer
+    runs-on: ubuntu-latest
+    env:
+      PACKAGE_VERSION: ${{ github.event.inputs.version || github.ref_name }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Normalize version
+        run: echo "PACKAGE_VERSION=${PACKAGE_VERSION#v}" >> "$GITHUB_ENV"
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Restore dependencies
+        run: dotnet restore
+
+      - name: Test
+        run: dotnet test --configuration Release
+
+      - name: Build packages
+        run: bash scripts/package/linux.sh
+
+      - name: Upload Linux installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: iCourse-linux-x64-installer
+          path: |
+            artifacts/linux/*.deb
+            artifacts/linux/*.tar.gz
+
+  macos:
+    name: macOS unsigned DMG
+    runs-on: macos-latest
+    env:
+      PACKAGE_VERSION: ${{ github.event.inputs.version || github.ref_name }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Normalize version
+        run: echo "PACKAGE_VERSION=${PACKAGE_VERSION#v}" >> "$GITHUB_ENV"
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Restore dependencies
+        run: dotnet restore
+
+      - name: Test
+        run: dotnet test --configuration Release
+
+      - name: Build unsigned DMG
+        run: bash scripts/package/macos.sh
+
+      - name: Upload macOS unsigned DMG
+        uses: actions/upload-artifact@v4
+        with:
+          name: iCourse-macos-universal-unsigned
+          path: artifacts/macos/*.dmg
