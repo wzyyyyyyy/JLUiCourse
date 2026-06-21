@@ -25,6 +25,34 @@ public sealed class CourseSelectionResponseClassifierTests
         Assert.Equal(CourseSelectionDecision.Success, result.Decision);
     }
 
+    [Fact]
+    public void Classify_Code200CapacityFullMessage_ReturnsTerminalFailure()
+    {
+        var result = classifier.Classify(Attempt("{\"code\":200,\"msg\":\"课容量已满\"}"));
+
+        Assert.Equal(CourseSelectionDecision.TerminalFailure, result.Decision);
+    }
+
+    [Fact]
+    public void Classify_CapacityFullWithRateLimitMessage_ReturnsTerminalFailure()
+    {
+        var result = classifier.Classify(Attempt(JsonMessage("课容量已满，请稍后再试")));
+
+        Assert.Equal(CourseSelectionDecision.TerminalFailure, result.Decision);
+    }
+
+    [Fact]
+    public void Classify_Http503CapacityFullBody_ReturnsTerminalFailure()
+    {
+        var attempt = new CourseSelectionAttempt(
+            HttpStatusCode.ServiceUnavailable,
+            "课容量已满");
+
+        var result = classifier.Classify(attempt);
+
+        Assert.Equal(CourseSelectionDecision.TerminalFailure, result.Decision);
+    }
+
     [Theory]
     [InlineData("课容量已满")]
     [InlineData("课程时间冲突")]
@@ -33,6 +61,8 @@ public sealed class CourseSelectionResponseClassifierTests
     [InlineData("课程信息无效")]
     [InlineData("选课批次已结束")]
     [InlineData("没有选课资格")]
+    [InlineData("无选课资格")]
+    [InlineData("选课资格不符")]
     [InlineData("已达到学分上限")]
     public void Classify_PermanentBusinessMessage_ReturnsTerminalFailure(string message)
     {
@@ -51,6 +81,15 @@ public sealed class CourseSelectionResponseClassifierTests
     public void Classify_TransientBusinessMessage_ReturnsRetry(string message)
     {
         var result = classifier.Classify(Attempt(JsonMessage(message)));
+
+        Assert.Equal(CourseSelectionDecision.Retry, result.Decision);
+        Assert.False(result.IsUnknown);
+    }
+
+    [Fact]
+    public void Classify_QualificationProcessingMessage_ReturnsRetry()
+    {
+        var result = classifier.Classify(Attempt(JsonMessage("选课资格处理中")));
 
         Assert.Equal(CourseSelectionDecision.Retry, result.Decision);
         Assert.False(result.IsUnknown);
@@ -122,6 +161,34 @@ public sealed class CourseSelectionResponseClassifierTests
         Assert.Equal(CourseSelectionDecision.Retry, result.Decision);
         Assert.True(result.IsUnknown);
         Assert.Equal("网关返回了未知内容", result.Reason);
+    }
+
+    [Fact]
+    public void Classify_LongHtmlResponse_ReturnsConciseUnknownRetry()
+    {
+        var body = $"<html><body><h1>网关错误</h1><p>{new string('错', 200)}</p></body></html>";
+
+        var result = classifier.Classify(Attempt(body));
+
+        Assert.Equal(CourseSelectionDecision.Retry, result.Decision);
+        Assert.True(result.IsUnknown);
+        Assert.Contains("网关错误", result.Reason);
+        Assert.DoesNotContain("<html", result.Reason, StringComparison.OrdinalIgnoreCase);
+        Assert.InRange(result.Reason.Length, 1, 120);
+        Assert.NotEqual(body, result.Reason);
+    }
+
+    [Fact]
+    public void Classify_LongPlainTextResponse_LimitsUnknownReasonLength()
+    {
+        var body = new string('未', 200);
+
+        var result = classifier.Classify(Attempt(body));
+
+        Assert.Equal(CourseSelectionDecision.Retry, result.Decision);
+        Assert.True(result.IsUnknown);
+        Assert.InRange(result.Reason.Length, 1, 120);
+        Assert.NotEqual(body, result.Reason);
     }
 
     [Fact]

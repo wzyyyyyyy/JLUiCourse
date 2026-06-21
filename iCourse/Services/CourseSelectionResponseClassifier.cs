@@ -1,4 +1,5 @@
 using System.Net;
+using System.Text.RegularExpressions;
 using iCourse.Models;
 using Newtonsoft.Json.Linq;
 
@@ -6,6 +7,17 @@ namespace iCourse.Services;
 
 public sealed class CourseSelectionResponseClassifier
 {
+    private const int MaxReasonLength = 120;
+    private const string CapacityFullFragment = "课容量已满";
+
+    private static readonly Regex HtmlTagPattern = new(
+        "<[^>]+>",
+        RegexOptions.Compiled | RegexOptions.CultureInvariant);
+
+    private static readonly Regex WhitespacePattern = new(
+        @"\s+",
+        RegexOptions.Compiled | RegexOptions.CultureInvariant);
+
     private static readonly string[] RateLimitFragments =
     [
         "请求过于频繁",
@@ -15,13 +27,15 @@ public sealed class CourseSelectionResponseClassifier
 
     private static readonly string[] PermanentFailureFragments =
     [
-        "课容量已满",
         "时间冲突",
         "不符合",
         "不可选",
         "无效",
         "批次已结束",
-        "资格",
+        "资格不符",
+        "无选课资格",
+        "没有选课资格",
+        "不具备选课资格",
         "学分上限"
     ];
 
@@ -36,6 +50,13 @@ public sealed class CourseSelectionResponseClassifier
 
     public CourseSelectionClassification Classify(CourseSelectionAttempt attempt)
     {
+        if (attempt.Body.Contains(CapacityFullFragment, StringComparison.Ordinal))
+        {
+            return new(
+                CourseSelectionDecision.TerminalFailure,
+                CapacityFullFragment);
+        }
+
         if (!string.IsNullOrWhiteSpace(attempt.Error))
         {
             return new(CourseSelectionDecision.Retry, attempt.Error);
@@ -72,13 +93,9 @@ public sealed class CourseSelectionResponseClassifier
         }
         catch
         {
-            var readableBody = string.IsNullOrWhiteSpace(attempt.Body)
-                ? "空响应"
-                : attempt.Body.Trim();
-
             return new(
                 CourseSelectionDecision.Retry,
-                readableBody,
+                SummarizeUnknownResponse(attempt.Body),
                 IsUnknown: true);
         }
 
@@ -107,10 +124,31 @@ public sealed class CourseSelectionResponseClassifier
 
         return new(
             CourseSelectionDecision.Retry,
-            message,
+            SummarizeUnknownResponse(message),
             IsUnknown: true);
     }
 
     private static bool ContainsAny(string message, IEnumerable<string> fragments) =>
         fragments.Any(fragment => message.Contains(fragment, StringComparison.Ordinal));
+
+    private static string SummarizeUnknownResponse(string response)
+    {
+        if (string.IsNullOrWhiteSpace(response))
+        {
+            return "空响应";
+        }
+
+        var withoutTags = HtmlTagPattern.Replace(response, " ");
+        var readable = WebUtility.HtmlDecode(withoutTags);
+        readable = WhitespacePattern.Replace(readable, " ").Trim();
+
+        if (readable.Length == 0)
+        {
+            return "无法识别的服务器响应";
+        }
+
+        return readable.Length <= MaxReasonLength
+            ? readable
+            : $"{readable[..(MaxReasonLength - 1)]}…";
+    }
 }
