@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Runtime.ExceptionServices;
 using iCourse.Models;
 
 namespace iCourse.Services;
@@ -53,19 +54,68 @@ public sealed class CourseSelectionEngine
             return Array.Empty<CourseSelectionSnapshot>();
         }
 
+        using var runCancellation = CancellationTokenSource.CreateLinkedTokenSource(token);
         using var limiter = new SemaphoreSlim(options.MaxConcurrency, options.MaxConcurrency);
+        var runFault = new FirstFault();
         var courseTasks = new Task<CourseSelectionSnapshot>[courses.Count];
         for (var index = 0; index < courses.Count; index++)
         {
-            courseTasks[index] = RunCourseAsync(
+            courseTasks[index] = RunCourseWithFaultCancellationAsync(
                 courses[index],
                 transport,
                 limiter,
                 progress,
-                token);
+                runCancellation,
+                runFault);
         }
 
-        return await Task.WhenAll(courseTasks).ConfigureAwait(false);
+        CourseSelectionSnapshot[]? results = null;
+        try
+        {
+            results = await Task.WhenAll(courseTasks).ConfigureAwait(false);
+        }
+        catch (Exception) when (runFault.HasFault)
+        {
+            // The first non-cancellation fault is rethrown after every course is clean.
+        }
+        finally
+        {
+            runCancellation.Cancel();
+            await ObserveCleanupAsync(Task.WhenAll(courseTasks)).ConfigureAwait(false);
+        }
+
+        runFault.ThrowIfCaptured();
+        return results ?? throw new InvalidOperationException("Selection run completed without results.");
+    }
+
+    private async Task<CourseSelectionSnapshot> RunCourseWithFaultCancellationAsync(
+        Course course,
+        ICourseSelectionTransport transport,
+        SemaphoreSlim limiter,
+        Action<CourseSelectionSnapshot> progress,
+        CancellationTokenSource runCancellation,
+        FirstFault runFault)
+    {
+        try
+        {
+            return await RunCourseAsync(
+                course,
+                transport,
+                limiter,
+                progress,
+                runCancellation,
+                runFault).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (runCancellation.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception exception)
+        {
+            runFault.Capture(exception);
+            runCancellation.Cancel();
+            throw;
+        }
     }
 
     private async Task<CourseSelectionSnapshot> RunCourseAsync(
@@ -73,21 +123,29 @@ public sealed class CourseSelectionEngine
         ICourseSelectionTransport transport,
         SemaphoreSlim limiter,
         Action<CourseSelectionSnapshot> progress,
-        CancellationToken runToken)
+        CancellationTokenSource runCancellation,
+        FirstFault runFault)
     {
-        using var courseCancellation = CancellationTokenSource.CreateLinkedTokenSource(runToken);
-        var runtime = new CourseRuntime(course, progress);
+        using var courseCancellation = CancellationTokenSource.CreateLinkedTokenSource(
+            runCancellation.Token);
+        var runtime = new CourseRuntime(course);
+        var progressPublisher = new ProgressPublisher(progress);
+        var courseFault = new FirstFault();
         var startSignal = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var lanes = new Task[options.LanesPerCourse];
 
         for (var lane = 0; lane < lanes.Length; lane++)
         {
-            lanes[lane] = RunLaneAsync(
+            lanes[lane] = RunLaneWithFaultCancellationAsync(
                 runtime,
+                progressPublisher,
                 transport,
                 limiter,
                 startSignal.Task,
-                courseCancellation);
+                courseCancellation,
+                courseFault,
+                runCancellation,
+                runFault);
         }
 
         startSignal.TrySetResult();
@@ -100,19 +158,64 @@ public sealed class CourseSelectionEngine
         {
             // A winning lane or the caller cancelled every outstanding lane.
         }
+        catch (Exception) when (courseFault.HasFault)
+        {
+            // The first lane fault is rethrown after its sibling has stopped.
+        }
         finally
         {
             courseCancellation.Cancel();
-            await SuppressCancellationAsync(Task.WhenAll(lanes)).ConfigureAwait(false);
+            await ObserveCleanupAsync(Task.WhenAll(lanes)).ConfigureAwait(false);
         }
 
+        courseFault.ThrowIfCaptured();
         var final = runtime.GetFinalOrCancel();
-        runtime.PublishFinal(final);
-        return final;
+        if (!runtime.TryMarkFinalPublished())
+        {
+            return final;
+        }
+
+        return progressPublisher.Publish(final);
+    }
+
+    private async Task RunLaneWithFaultCancellationAsync(
+        CourseRuntime runtime,
+        ProgressPublisher progressPublisher,
+        ICourseSelectionTransport transport,
+        SemaphoreSlim limiter,
+        Task startSignal,
+        CancellationTokenSource courseCancellation,
+        FirstFault courseFault,
+        CancellationTokenSource runCancellation,
+        FirstFault runFault)
+    {
+        try
+        {
+            await RunLaneAsync(
+                runtime,
+                progressPublisher,
+                transport,
+                limiter,
+                startSignal,
+                courseCancellation).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (courseCancellation.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception exception)
+        {
+            courseFault.Capture(exception);
+            runFault.Capture(exception);
+            courseCancellation.Cancel();
+            runCancellation.Cancel();
+            throw;
+        }
     }
 
     private async Task RunLaneAsync(
         CourseRuntime runtime,
+        ProgressPublisher progressPublisher,
         ICourseSelectionTransport transport,
         SemaphoreSlim limiter,
         Task startSignal,
@@ -130,12 +233,13 @@ public sealed class CourseSelectionEngine
 
             try
             {
-                if (!runtime.TryBeginAttempt())
+                if (!runtime.TryBeginAttempt(out var racing))
                 {
                     return;
                 }
 
                 beganAttempt = true;
+                progressPublisher.Publish(racing);
                 CourseSelectionAttempt attempt;
                 try
                 {
@@ -178,10 +282,12 @@ public sealed class CourseSelectionEngine
                         ? delay.GetTransientDelay()
                         : delay.GetNetworkDelay(retryCount);
 
-                if (!runtime.PublishRetry(classification.Reason))
+                if (!runtime.TryCreateRetrySnapshot(classification.Reason, out var retrying))
                 {
                     return;
                 }
+
+                progressPublisher.Publish(retrying);
             }
             finally
             {
@@ -197,14 +303,15 @@ public sealed class CourseSelectionEngine
         }
     }
 
-    private static async Task SuppressCancellationAsync(Task task)
+    private static async Task ObserveCleanupAsync(Task task)
     {
         try
         {
             await task.ConfigureAwait(false);
         }
-        catch (OperationCanceledException)
+        catch
         {
+            // Faults are captured before cancellation and rethrown after cleanup.
         }
     }
 
@@ -215,15 +322,12 @@ public sealed class CourseSelectionEngine
         AlreadyFinal
     }
 
-    private sealed class CourseRuntime(
-        Course course,
-        Action<CourseSelectionSnapshot> progress)
+    private sealed class CourseRuntime(Course course)
     {
         private readonly object sync = new();
         private readonly Stopwatch stopwatch = Stopwatch.StartNew();
         private int attempts;
         private int inFlight;
-        private long version;
         private string? unknownReason;
         private int unknownCount;
         private CourseSelectionSnapshot? finalSnapshot;
@@ -231,18 +335,19 @@ public sealed class CourseSelectionEngine
 
         public Course Course { get; } = course;
 
-        public bool TryBeginAttempt()
+        public bool TryBeginAttempt(out CourseSelectionSnapshot snapshot)
         {
             lock (sync)
             {
                 if (finalSnapshot is not null)
                 {
+                    snapshot = null!;
                     return false;
                 }
 
                 attempts++;
                 inFlight++;
-                progress(CreateSnapshot(CourseSelectionState.Racing, "正在尝试"));
+                snapshot = CreateSnapshot(CourseSelectionState.Racing, "正在尝试");
                 return true;
             }
         }
@@ -310,19 +415,22 @@ public sealed class CourseSelectionEngine
             }
         }
 
-        public bool PublishRetry(string reason)
+        public bool TryCreateRetrySnapshot(
+            string reason,
+            out CourseSelectionSnapshot snapshot)
         {
             lock (sync)
             {
                 if (finalSnapshot is not null)
                 {
+                    snapshot = null!;
                     return false;
                 }
 
                 var state = inFlight > 0
                     ? CourseSelectionState.Racing
                     : CourseSelectionState.BackingOff;
-                progress(CreateSnapshot(state, reason));
+                snapshot = CreateSnapshot(state, reason);
                 return true;
             }
         }
@@ -338,17 +446,17 @@ public sealed class CourseSelectionEngine
             }
         }
 
-        public void PublishFinal(CourseSelectionSnapshot snapshot)
+        public bool TryMarkFinalPublished()
         {
             lock (sync)
             {
                 if (finalPublished)
                 {
-                    return;
+                    return false;
                 }
 
                 finalPublished = true;
-                progress(snapshot);
+                return true;
             }
         }
 
@@ -362,6 +470,42 @@ public sealed class CourseSelectionEngine
                 attempts,
                 stopwatch.Elapsed,
                 result,
-                ++version);
+                0);
+    }
+
+    private sealed class ProgressPublisher(Action<CourseSelectionSnapshot> progress)
+    {
+        private readonly object sync = new();
+        private long version;
+
+        public CourseSelectionSnapshot Publish(CourseSelectionSnapshot snapshot)
+        {
+            lock (sync)
+            {
+                var versioned = snapshot with { Version = ++version };
+                progress(versioned);
+                return versioned;
+            }
+        }
+    }
+
+    private sealed class FirstFault
+    {
+        private ExceptionDispatchInfo? captured;
+
+        public bool HasFault => Volatile.Read(ref captured) is not null;
+
+        public void Capture(Exception exception)
+        {
+            Interlocked.CompareExchange(
+                ref captured,
+                ExceptionDispatchInfo.Capture(exception),
+                null);
+        }
+
+        public void ThrowIfCaptured()
+        {
+            Volatile.Read(ref captured)?.Throw();
+        }
     }
 }

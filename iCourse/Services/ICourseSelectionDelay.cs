@@ -23,10 +23,12 @@ public sealed class AggressiveCourseSelectionDelay : ICourseSelectionDelay
             TimeSpan.FromSeconds(1));
 
     public TimeSpan GetRateLimitDelay(TimeSpan? retryAfter, int failureCount) =>
-        retryAfter ?? ExponentialDelay(
-            TimeSpan.FromMilliseconds(250),
-            failureCount,
-            TimeSpan.FromSeconds(2));
+        retryAfter is { } requested && requested > TimeSpan.Zero
+            ? requested
+            : ExponentialDelay(
+                TimeSpan.FromMilliseconds(250),
+                failureCount,
+                TimeSpan.FromSeconds(2));
 
     public Task WaitAsync(TimeSpan delay, CancellationToken token) =>
         Task.Delay(delay, token);

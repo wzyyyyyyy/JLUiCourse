@@ -61,7 +61,8 @@ public sealed class CourseSelectionEngineTests
         });
 
         var result = await CreateEngine().RunAsync(
-            [Course("1")], transport, _ => { }, CancellationToken.None);
+            [Course("1")], transport, _ => { }, CancellationToken.None)
+            .WaitAsync(TimeSpan.FromSeconds(2));
 
         Assert.Equal(2, calls);
         Assert.Equal(CourseSelectionState.Succeeded, Assert.Single(result).State);
@@ -101,7 +102,8 @@ public sealed class CourseSelectionEngineTests
         });
 
         var result = await CreateEngine().RunAsync(
-            [Course("1")], transport, _ => { }, CancellationToken.None);
+            [Course("1")], transport, _ => { }, CancellationToken.None)
+            .WaitAsync(TimeSpan.FromSeconds(2));
 
         var final = Assert.Single(result);
         Assert.Equal(2, calls);
@@ -146,7 +148,7 @@ public sealed class CourseSelectionEngineTests
         Assert.Equal(20, maxActive);
         release.TrySetResult();
 
-        var result = await run.WaitAsync(TimeSpan.FromSeconds(5));
+        var result = await run.WaitAsync(TimeSpan.FromSeconds(2));
         Assert.Equal(50, result.Count);
         Assert.Equal(0, active);
     }
@@ -162,7 +164,8 @@ public sealed class CourseSelectionEngineTests
         });
 
         var result = await CreateEngine().RunAsync(
-            [Course("1")], transport, _ => { }, CancellationToken.None);
+            [Course("1")], transport, _ => { }, CancellationToken.None)
+            .WaitAsync(TimeSpan.FromSeconds(2));
 
         var final = Assert.Single(result);
         Assert.Equal(CourseSelectionState.Failed, final.State);
@@ -245,6 +248,124 @@ public sealed class CourseSelectionEngineTests
     }
 
     [Fact]
+    public async Task RunAsync_ProgressFaultCancelsSiblingAndEngineCanRunAgain()
+    {
+        var expected = new InvalidOperationException("progress failed");
+        var active = 0;
+        var progressCalls = 0;
+        var blockingTransport = new ScriptedTransport(async (_, token) =>
+        {
+            Interlocked.Increment(ref active);
+            try
+            {
+                await Task.Delay(Timeout.InfiniteTimeSpan, token);
+                throw new InvalidOperationException("unreachable");
+            }
+            finally
+            {
+                Interlocked.Decrement(ref active);
+            }
+        });
+        var engine = CreateEngine(maxConcurrency: 1);
+
+        var fault = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            engine.RunAsync(
+                    [Course("1")],
+                    blockingTransport,
+                    _ =>
+                    {
+                        if (Interlocked.Increment(ref progressCalls) == 1)
+                        {
+                            throw expected;
+                        }
+                    },
+                    CancellationToken.None)
+                .WaitAsync(TimeSpan.FromSeconds(1)));
+
+        Assert.Same(expected, fault);
+        Assert.Equal(0, active);
+
+        var successful = await engine.RunAsync(
+                [Course("2")],
+                new ScriptedTransport((_, _) => Task.FromResult(Success())),
+                _ => { },
+                CancellationToken.None)
+            .WaitAsync(TimeSpan.FromSeconds(1));
+        Assert.Equal(CourseSelectionState.Succeeded, Assert.Single(successful).State);
+    }
+
+    [Fact]
+    public async Task RunAsync_DelayFaultCancelsSiblingAndOtherCoursesBeforePropagating()
+    {
+        var expected = new InvalidOperationException("delay failed");
+        var allStarted = NewSignal();
+        var siblingCancelled = NewSignal();
+        var otherCourseCancelled = NewSignal();
+        var courseOneCalls = 0;
+        var otherCourseCancellations = 0;
+        var active = 0;
+        var transport = new ScriptedTransport(async (course, token) =>
+        {
+            var call = course.CourseId == "1"
+                ? Interlocked.Increment(ref courseOneCalls)
+                : 0;
+            if (Interlocked.Increment(ref active) == 4)
+            {
+                allStarted.TrySetResult();
+            }
+
+            try
+            {
+                await allStarted.Task.WaitAsync(token);
+                if (course.CourseId == "1" && call == 1)
+                {
+                    return Busy();
+                }
+
+                try
+                {
+                    await Task.Delay(Timeout.InfiniteTimeSpan, token);
+                    throw new InvalidOperationException("unreachable");
+                }
+                catch (OperationCanceledException)
+                {
+                    if (course.CourseId == "1")
+                    {
+                        siblingCancelled.TrySetResult();
+                    }
+                    else if (Interlocked.Increment(ref otherCourseCancellations) == 2)
+                    {
+                        otherCourseCancelled.TrySetResult();
+                    }
+
+                    throw;
+                }
+            }
+            finally
+            {
+                Interlocked.Decrement(ref active);
+            }
+        });
+        var engine = new CourseSelectionEngine(
+            new CourseSelectionResponseClassifier(),
+            new ThrowingDelay(expected),
+            new CourseSelectionOptions());
+
+        var fault = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            engine.RunAsync(
+                    [Course("1"), Course("2")],
+                    transport,
+                    _ => { },
+                    CancellationToken.None)
+                .WaitAsync(TimeSpan.FromSeconds(1)));
+
+        Assert.Same(expected, fault);
+        await siblingCancelled.Task.WaitAsync(TimeSpan.FromSeconds(1));
+        await otherCourseCancelled.Task.WaitAsync(TimeSpan.FromSeconds(1));
+        Assert.Equal(0, active);
+    }
+
+    [Fact]
     public async Task RunAsync_FinalProgressIsLastAndVersionsAreStrictlyIncreasing()
     {
         var events = new ConcurrentQueue<CourseSelectionSnapshot>();
@@ -278,7 +399,8 @@ public sealed class CourseSelectionEngineTests
         });
 
         var result = await CreateEngine().RunAsync(
-            [Course("1")], transport, events.Enqueue, CancellationToken.None);
+            [Course("1")], transport, events.Enqueue, CancellationToken.None)
+            .WaitAsync(TimeSpan.FromSeconds(2));
 
         await siblingCancelled.Task.WaitAsync(TimeSpan.FromSeconds(1));
         var published = events.ToArray();
@@ -386,6 +508,21 @@ public sealed class CourseSelectionEngineTests
         Assert.Equal(retryAfter, delay.GetRateLimitDelay(retryAfter, 100));
     }
 
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    [InlineData(-200)]
+    public void AggressiveDelay_NonPositiveRetryAfterUsesNormalBackoff(int milliseconds)
+    {
+        var delay = new AggressiveCourseSelectionDelay();
+
+        var result = delay.GetRateLimitDelay(
+            TimeSpan.FromMilliseconds(milliseconds),
+            failureCount: 1);
+
+        Assert.Equal(TimeSpan.FromMilliseconds(250), result);
+    }
+
     [Fact]
     public async Task AggressiveDelay_WaitIsCancellable()
     {
@@ -479,6 +616,19 @@ public sealed class CourseSelectionEngineTests
 
             return Task.Delay(Timeout.InfiniteTimeSpan, token);
         }
+    }
+
+    private sealed class ThrowingDelay(Exception exception) : ICourseSelectionDelay
+    {
+        public TimeSpan GetTransientDelay() => TimeSpan.Zero;
+
+        public TimeSpan GetNetworkDelay(int failureCount) => TimeSpan.Zero;
+
+        public TimeSpan GetRateLimitDelay(TimeSpan? retryAfter, int failureCount) =>
+            TimeSpan.Zero;
+
+        public Task WaitAsync(TimeSpan delay, CancellationToken token) =>
+            Task.FromException(exception);
     }
 
     private sealed class ScriptedTransport(
