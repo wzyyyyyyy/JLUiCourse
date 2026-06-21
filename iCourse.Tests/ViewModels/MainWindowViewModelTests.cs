@@ -34,6 +34,9 @@ public sealed class MainWindowViewModelTests
         public Task<List<Course>> QueryCoursesAsync(int index, int pageMaxSize, string key) => Task.FromResult(new List<Course>());
         public Task SetBatchIdAsync(BatchInfo batch) => Task.CompletedTask;
         public Task StartSelectClassAsync() => Task.CompletedTask;
+        public void StopSelectClass()
+        {
+        }
     }
 
     private sealed class FakeDialogService : IDialogService

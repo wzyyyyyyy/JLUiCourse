@@ -4,12 +4,10 @@ using iCourse.Models;
 using iCourse.Services;
 using Newtonsoft.Json.Linq;
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
 using System.Text;
-using System.Threading;
 using System.Threading.Tasks;
 
 namespace iCourse.Helpers;
@@ -18,7 +16,9 @@ public class JLUiCourseApi(
     Logger logger,
     UserCredentials credentials,
     IDialogService dialogs,
-    IAppLifetime lifetime) : IJLUiCourseApi
+    IAppLifetime lifetime,
+    CourseSelectionEngine selectionEngine,
+    IMessenger messenger) : IJLUiCourseApi
 {
     private Http client = null!;
     private string username = string.Empty;
@@ -26,11 +26,7 @@ public class JLUiCourseApi(
     private string uuid = string.Empty;
     private string token = string.Empty;
     private BatchInfo batch = null!;
-    private CancellationTokenSource cts = new();
-
-    private static readonly Random Random = new();
-    private readonly ConcurrentQueue<(Course course, TaskCompletionSource<(bool, string?)> tcs)> taskQueue = new();
-    private readonly int workerCount = Environment.ProcessorCount * 2;
+    private readonly CourseSelectionRunGuard runGuard = new();
 
     private async Task<string> FetchCaptchaAsync()
     {
@@ -118,11 +114,15 @@ public class JLUiCourseApi(
         {
             logger.WriteLine("选课批次设置成功");
             logger.WriteLine("已选批次:" + batch.batchName);
-            WeakReferenceMessenger.Default.Send(new SetBatchFinishedMessage(batch));
+            messenger.Send(new SetBatchFinishedMessage(batch));
         }
         else
         {
-            logger.WriteLine(json["msg"]?.ToString());
+            var message = json["msg"]?.ToString() ?? "服务器未返回原因";
+            logger.WriteLine(message);
+            messenger.Send(new SystemBannerMessage(
+                $"选课批次设置失败：{message}",
+                SystemBannerSeverity.Error));
         }
 
         client.SetReferer("https://icourses.jlu.edu.cn/xsxk/profile/index.html");
@@ -132,34 +132,79 @@ public class JLUiCourseApi(
 
     public async Task StartSelectClassAsync()
     {
-        cts = new CancellationTokenSource();
-        var list = await GetFavoriteCoursesAsync();
-
-        StartWorkerPool();
-
-        int total = list.Count;
-        int completed = 0;
-
-        var tasks = list.Select(async course =>
+        if (!runGuard.TryBegin(out var runToken))
         {
-            var (isSuccess, msg) = await EnqueueSelectCourseAsync(course);
-            Interlocked.Increment(ref completed);
-            WeakReferenceMessenger.Default.Send(new SelectCourseFinishedMessage(completed, total));
-            return new { course.Name, isSuccess, msg };
-        }).ToList();
-
-        var results = await Task.WhenAll(tasks);
-
-        logger.WriteLine("选课完成!");
-
-        foreach (var r in results.Where(r => !r.isSuccess))
-        {
-            logger.WriteLine($"课程失败: {r.Name}, 原因: {r.msg}");
+            messenger.Send(new SystemBannerMessage(
+                "选课任务正在进行中",
+                SystemBannerSeverity.Warning));
+            return;
         }
 
-        logger.WriteLine($"成功数: {results.Count(r => r.isSuccess)}");
+        var wasCancelled = false;
+        try
+        {
+            var courses = await GetFavoriteCoursesAsync();
+            runToken.ThrowIfCancellationRequested();
 
-        cts.Cancel();
+            if (courses.Count == 0)
+            {
+                messenger.Send(new SystemBannerMessage(
+                    "收藏中没有可选课程",
+                    SystemBannerSeverity.Warning));
+                return;
+            }
+
+            messenger.Send(new CourseSelectionRunStartedMessage(
+                courses.Select(CourseSelectionSnapshot.Waiting).ToList()));
+
+            var transport = new CourseSelectionHttpTransport(client, batch.batchId);
+            var results = await selectionEngine.RunAsync(
+                courses,
+                transport,
+                snapshot => messenger.Send(
+                    new CourseSelectionStatusChangedMessage(snapshot)),
+                runToken);
+
+            wasCancelled = runToken.IsCancellationRequested;
+            LogSelectionResults(results, wasCancelled);
+        }
+        catch (OperationCanceledException) when (runToken.IsCancellationRequested)
+        {
+            wasCancelled = true;
+            logger.WriteLine("选课任务已取消");
+        }
+        catch (Exception exception)
+        {
+            logger.WriteLine($"选课任务异常: {exception}");
+            messenger.Send(new SystemBannerMessage(
+                "选课任务发生异常，请查看日志",
+                SystemBannerSeverity.Error));
+        }
+        finally
+        {
+            wasCancelled |= runToken.IsCancellationRequested;
+            runGuard.Complete();
+            messenger.Send(new CourseSelectionRunCompletedMessage(wasCancelled));
+        }
+    }
+
+    public void StopSelectClass() => runGuard.Cancel();
+
+    private void LogSelectionResults(
+        IReadOnlyList<CourseSelectionSnapshot> results,
+        bool wasCancelled)
+    {
+        foreach (var result in results)
+        {
+            logger.WriteLine(
+                $"课程结果: {result.CourseName}, {result.LatestResult}, 尝试 {result.AttemptCount} 次");
+        }
+
+        logger.WriteLine(
+            $"选课{(wasCancelled ? "已取消" : "完成")}：" +
+            $"成功 {results.Count(result => result.State == CourseSelectionState.Succeeded)}，" +
+            $"失败 {results.Count(result => result.State == CourseSelectionState.Failed)}，" +
+            $"取消 {results.Count(result => result.State == CourseSelectionState.Cancelled)}");
     }
 
     private List<Course> ParseCourseListResponse(string response)
@@ -193,6 +238,9 @@ public class JLUiCourseApi(
         if (msg == "验证码错误")
         {
             logger.WriteLine(msg);
+            messenger.Send(new SystemBannerMessage(
+                "验证码错误，请重新输入",
+                SystemBannerSeverity.Warning));
             await LoginAsync(username, password);
             return;
         }
@@ -211,7 +259,7 @@ public class JLUiCourseApi(
             logger.WriteLine($"学号：{studentId}");
             logger.WriteLine($"学院：{collage}");
 
-            WeakReferenceMessenger.Default.Send(new LoginSuccessMessage());
+            messenger.Send(new LoginSuccessMessage());
 
             var batchInfos = GetBatchInfo(json);
             if (credentials.AutoSelectBatch && !string.IsNullOrEmpty(credentials.LastBatchId))
@@ -234,6 +282,9 @@ public class JLUiCourseApi(
         }
 
         logger.WriteLine($"错误:{code}, {msg}");
+        messenger.Send(new SystemBannerMessage(
+            string.IsNullOrWhiteSpace(msg) ? "登录失败" : $"登录失败：{msg}",
+            SystemBannerSeverity.Error));
     }
 
     private async Task<string> PostLoginAsync(string captcha)
@@ -297,87 +348,6 @@ public class JLUiCourseApi(
         return coursesList;
     }
 
-    private string BuildRequestBody(Course course)
-    {
-        return $"clazzId={Uri.EscapeDataString(course.CourseId)}&secretVal={Uri.EscapeDataString(course.SecretVal)}&clazzType={Uri.EscapeDataString(course.SelectType.ToString())}";
-    }
-
-    private void StartWorkerPool()
-    {
-        for (int i = 0; i < workerCount; i++)
-        {
-            Task.Factory.StartNew(async () =>
-            {
-                while (!cts.IsCancellationRequested)
-                {
-                    if (taskQueue.TryDequeue(out var workItem))
-                    {
-                        var (course, tcs) = workItem;
-                        var result = await TrySelectCourseWithBackoffAsync(course);
-                        tcs.TrySetResult(result);
-                    }
-                    else
-                    {
-                        await Task.Delay(10);
-                    }
-                }
-            }, TaskCreationOptions.LongRunning);
-        }
-    }
-
-    private async Task<(bool isSuccess, string? msg)> TrySelectCourseWithBackoffAsync(Course course)
-    {
-        client.DefaultRequestHeaders.Referrer = new Uri($"https://icourses.jlu.edu.cn/xsxk/elective/grablessons?batchId={batch.batchId}");
-
-        int failCount = 0;
-
-        while (true)
-        {
-            try
-            {
-                var requestBody = BuildRequestBody(course);
-                using var content = new StringContent(requestBody, Encoding.UTF8, "application/x-www-form-urlencoded");
-                var response = await client.PostAsync("xsxk/sc/clazz/addxk", content);
-                var respStr = await response.Content.ReadAsStringAsync();
-
-                var json = JObject.Parse(respStr);
-                var code = json["code"]?.ToObject<int>() ?? 0;
-                var msg = json["msg"]?.ToString() ?? string.Empty;
-
-                if (code == 200)
-                {
-                    logger.WriteLine($"成功选课: {course.Name}");
-                    return (true, null);
-                }
-
-                logger.WriteLine($"{course.Name} : {msg}");
-
-                if (msg == "该课程已在选课结果中" || msg == "课容量已满")
-                {
-                    return msg == "课容量已满" ? (false, msg) : (true, null);
-                }
-
-                failCount++;
-                int delay = Math.Min(500, 100 + failCount * 100 + Random.Next(0, 50));
-                await Task.Delay(delay);
-            }
-            catch (Exception ex)
-            {
-                logger.WriteLine($"{course.Name} : 异常 {ex.Message}");
-                failCount++;
-                int delay = Math.Min(500, 100 + failCount * 100 + Random.Next(0, 50));
-                await Task.Delay(delay);
-            }
-        }
-    }
-
-    private async Task<(bool isSuccess, string? msg)> EnqueueSelectCourseAsync(Course course)
-    {
-        var tcs = new TaskCompletionSource<(bool, string?)>(TaskCreationOptions.RunContinuationsAsynchronously);
-        taskQueue.Enqueue((course, tcs));
-        return await tcs.Task;
-    }
-
     private void KeepOnline()
     {
         _ = Task.Run(async () =>
@@ -387,6 +357,9 @@ public class JLUiCourseApi(
                 var response = await client.HttpPostAsync("xsxk/sc/clazz/list", null);
                 if (response.StartsWith('<'))
                 {
+                    messenger.Send(new SystemBannerMessage(
+                        "登录已失效，应用即将重启",
+                        SystemBannerSeverity.Warning));
                     await dialogs.ShowMessageAsync("掉线提醒", "检测到掉线，将在1秒后重启本软件！");
                     await Task.Delay(1000);
                     lifetime.Restart();

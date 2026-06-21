@@ -1,6 +1,7 @@
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
+using CommunityToolkit.Mvvm.Messaging;
 using iCourse.Helpers;
 using iCourse.Models;
 using iCourse.Services;
@@ -51,8 +52,13 @@ public partial class App : Application
         services.AddSingleton<IAppLifetime, AppLifetime>();
         services.AddSingleton<IImageDecoder, AvaloniaImageDecoder>();
         services.AddSingleton<IDialogService, DialogService>();
+        services.AddSingleton<IMessenger>(WeakReferenceMessenger.Default);
         services.AddSingleton<Logger>();
         services.AddSingleton<UserCredentials>();
+        services.AddSingleton(new CourseSelectionOptions());
+        services.AddSingleton<CourseSelectionResponseClassifier>();
+        services.AddSingleton<ICourseSelectionDelay, AggressiveCourseSelectionDelay>();
+        services.AddSingleton<CourseSelectionEngine>();
         services.AddSingleton<JLUiCourseApi>();
         services.AddSingleton<IJLUiCourseApi>(provider => provider.GetRequiredService<JLUiCourseApi>());
         services.AddTransient<MainWindowViewModel>();
