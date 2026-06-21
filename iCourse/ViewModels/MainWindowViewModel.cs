@@ -2,11 +2,11 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
 using CommunityToolkit.Mvvm.Messaging.Messages;
-using iCourse.Helpers;
 using iCourse.Messages;
 using iCourse.Models;
 using iCourse.Services;
 using System.Collections.ObjectModel;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace iCourse.ViewModels;
@@ -19,6 +19,9 @@ public partial class MainWindowViewModel :
     private readonly IJLUiCourseApi api;
     private readonly UserCredentials credentials;
     private readonly IDialogService dialogs;
+    private readonly IUiDispatcher dispatcher;
+    private readonly Dictionary<string, CourseSelectionStatusItem> statusByCourseId = [];
+    private int startInProgress;
 
     [ObservableProperty]
     private bool canLogin = true;
@@ -46,21 +49,57 @@ public partial class MainWindowViewModel :
     private bool autoSelectBatch;
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(CanStartSelection))]
+    [NotifyCanExecuteChangedFor(nameof(StartSelectCourseCommand))]
     private bool areAfterLoginButtonsVisible;
 
-    public MainWindowViewModel(IJLUiCourseApi api, UserCredentials credentials, Logger logger, IDialogService dialogs)
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(CanStartSelection))]
+    [NotifyCanExecuteChangedFor(nameof(StartSelectCourseCommand))]
+    private bool isSelectionRunning;
+
+    [ObservableProperty]
+    private int totalCount;
+
+    [ObservableProperty]
+    private int runningCount;
+
+    [ObservableProperty]
+    private int succeededCount;
+
+    [ObservableProperty]
+    private int failedCount;
+
+    [ObservableProperty]
+    private string bannerText = string.Empty;
+
+    [ObservableProperty]
+    private bool isBannerVisible;
+
+    [ObservableProperty]
+    private SystemBannerSeverity bannerSeverity;
+
+    public MainWindowViewModel(
+        IJLUiCourseApi api,
+        UserCredentials credentials,
+        IDialogService dialogs,
+        IUiDispatcher dispatcher,
+        IMessenger messenger)
+        : base(messenger)
     {
         this.api = api;
         this.credentials = credentials;
         this.dialogs = dialogs;
-
-        LogMessages = logger.LogMessages;
+        this.dispatcher = dispatcher;
 
         AutoLogin = credentials.AutoLogin;
         AutoSelectBatch = credentials.AutoSelectBatch;
 
-        WeakReferenceMessenger.Default.Register<LoginSuccessMessage>(this, LoginSuccess);
-        WeakReferenceMessenger.Default.Register<SelectCourseFinishedMessage>(this, SelectCourseFinished);
+        messenger.Register<LoginSuccessMessage>(this, LoginSuccess);
+        messenger.Register<CourseSelectionRunStartedMessage>(this, CourseSelectionRunStarted);
+        messenger.Register<CourseSelectionStatusChangedMessage>(this, CourseSelectionStatusChanged);
+        messenger.Register<CourseSelectionRunCompletedMessage>(this, CourseSelectionRunCompleted);
+        messenger.Register<SystemBannerMessage>(this, SystemBannerReceived);
 
         if (credentials.AutoLogin && !string.IsNullOrEmpty(credentials.Username) && !string.IsNullOrEmpty(credentials.Password))
         {
@@ -70,7 +109,9 @@ public partial class MainWindowViewModel :
         }
     }
 
-    public ObservableCollection<string> LogMessages { get; }
+    public ObservableCollection<CourseSelectionStatusItem> CourseStatuses { get; } = [];
+
+    public bool CanStartSelection => AreAfterLoginButtonsVisible && !IsSelectionRunning;
 
     [RelayCommand]
     private async Task Login()
@@ -84,10 +125,34 @@ public partial class MainWindowViewModel :
         _ = api.LoginAsync(Username, Password);
     }
 
-    [RelayCommand]
-    private void StartSelectCourse()
+    [RelayCommand(CanExecute = nameof(CanStartSelection))]
+    private async Task StartSelectCourse()
     {
-        _ = api.StartSelectClassAsync();
+        if (!CanStartSelection || Interlocked.CompareExchange(ref startInProgress, 1, 0) != 0)
+        {
+            return;
+        }
+
+        dispatcher.Post(() => IsSelectionRunning = true);
+
+        try
+        {
+            await api.StartSelectClassAsync();
+        }
+        finally
+        {
+            dispatcher.Post(() =>
+            {
+                IsSelectionRunning = false;
+                Interlocked.Exchange(ref startInProgress, 0);
+            });
+        }
+    }
+
+    [RelayCommand]
+    private void StopSelectCourse()
+    {
+        api.StopSelectClass();
     }
 
     [RelayCommand]
@@ -98,14 +163,106 @@ public partial class MainWindowViewModel :
 
     private void LoginSuccess(object recipient, LoginSuccessMessage message)
     {
-        CanLogin = false;
-        AreAfterLoginButtonsVisible = true;
+        dispatcher.Post(() =>
+        {
+            CanLogin = false;
+            AreAfterLoginButtonsVisible = true;
+        });
     }
 
-    private void SelectCourseFinished(object recipient, SelectCourseFinishedMessage message)
+    private void CourseSelectionRunStarted(object recipient, CourseSelectionRunStartedMessage message)
     {
-        IsProgressVisible = true;
-        ProgressValue = ((double)message.FinishedNum / message.Total) * 100;
+        dispatcher.Post(() =>
+        {
+            CourseStatuses.Clear();
+            statusByCourseId.Clear();
+
+            foreach (var snapshot in message.Snapshots)
+            {
+                if (statusByCourseId.ContainsKey(snapshot.CourseId))
+                {
+                    continue;
+                }
+
+                var row = new CourseSelectionStatusItem(snapshot);
+                statusByCourseId.Add(row.CourseId, row);
+                CourseStatuses.Add(row);
+            }
+
+            IsSelectionRunning = true;
+            IsProgressVisible = CourseStatuses.Count > 0;
+            ClearBanner();
+            RecalculateSummary();
+        });
+    }
+
+    private void CourseSelectionStatusChanged(object recipient, CourseSelectionStatusChangedMessage message)
+    {
+        dispatcher.Post(() =>
+        {
+            if (statusByCourseId.TryGetValue(message.Snapshot.CourseId, out var row))
+            {
+                row.Apply(message.Snapshot);
+                RecalculateSummary();
+            }
+        });
+    }
+
+    private void CourseSelectionRunCompleted(object recipient, CourseSelectionRunCompletedMessage message)
+    {
+        dispatcher.Post(() =>
+        {
+            IsSelectionRunning = false;
+            if (message.WasCancelled)
+            {
+                ShowBanner("选课任务已停止", SystemBannerSeverity.Warning);
+            }
+        });
+    }
+
+    private void SystemBannerReceived(object recipient, SystemBannerMessage message)
+    {
+        dispatcher.Post(() =>
+        {
+            if (string.IsNullOrWhiteSpace(message.Text))
+            {
+                ClearBanner();
+                return;
+            }
+
+            ShowBanner(message.Text, message.Severity);
+        });
+    }
+
+    private void RecalculateSummary()
+    {
+        TotalCount = CourseStatuses.Count;
+        RunningCount = CourseStatuses.Count(row => row.State is
+            CourseSelectionState.Waiting or
+            CourseSelectionState.Racing or
+            CourseSelectionState.BackingOff);
+        SucceededCount = CourseStatuses.Count(row => row.State == CourseSelectionState.Succeeded);
+        FailedCount = CourseStatuses.Count(row => row.State == CourseSelectionState.Failed);
+
+        var finalCount = CourseStatuses.Count(row => row.State is
+            CourseSelectionState.Succeeded or
+            CourseSelectionState.Failed or
+            CourseSelectionState.Cancelled);
+        ProgressValue = TotalCount == 0 ? 0 : (double)finalCount / TotalCount * 100;
+    }
+
+    private void ShowBanner(string text, SystemBannerSeverity severity)
+    {
+        BannerText = text;
+        BannerSeverity = severity;
+        IsBannerVisible = true;
+    }
+
+    private void ClearBanner()
+    {
+        BannerText = string.Empty;
+        BannerSeverity = SystemBannerSeverity.Info;
+        IsBannerVisible = false;
     }
 
     public void Receive(PropertyChangedMessage<string> message)
