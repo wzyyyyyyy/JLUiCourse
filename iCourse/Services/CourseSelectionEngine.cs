@@ -18,19 +18,19 @@ public sealed class CourseSelectionEngine
         ArgumentNullException.ThrowIfNull(delay);
         ArgumentNullException.ThrowIfNull(options);
 
-        if (options.LanesPerCourse <= 0)
+        if (options.LanesPerCourse != 2)
         {
-            throw new ArgumentOutOfRangeException(nameof(options), "At least one lane is required.");
+            throw new ArgumentOutOfRangeException(nameof(options), "Exactly two lanes are required.");
         }
 
-        if (options.MaxConcurrency <= 0)
+        if (options.MaxConcurrency is < 1 or > 20)
         {
-            throw new ArgumentOutOfRangeException(nameof(options), "Concurrency must be positive.");
+            throw new ArgumentOutOfRangeException(nameof(options), "Concurrency must be between 1 and 20.");
         }
 
-        if (options.UnknownResponseLimit <= 0)
+        if (options.UnknownResponseLimit != 5)
         {
-            throw new ArgumentOutOfRangeException(nameof(options), "Unknown-response limit must be positive.");
+            throw new ArgumentOutOfRangeException(nameof(options), "Unknown-response limit must be five.");
         }
 
         this.classifier = classifier;

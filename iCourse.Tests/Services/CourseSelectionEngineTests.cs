@@ -7,6 +7,27 @@ namespace iCourse.Tests.Services;
 
 public sealed class CourseSelectionEngineTests
 {
+    [Theory]
+    [InlineData(3, 20, 5)]
+    [InlineData(2, 21, 5)]
+    [InlineData(2, 20, 4)]
+    public void Constructor_RejectsOptionsOutsideFixedSafetyLimits(
+        int lanesPerCourse,
+        int maxConcurrency,
+        int unknownResponseLimit)
+    {
+        var options = new CourseSelectionOptions(
+            lanesPerCourse,
+            maxConcurrency,
+            unknownResponseLimit);
+
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            new CourseSelectionEngine(
+                new CourseSelectionResponseClassifier(),
+                new ImmediateDelay(),
+                options));
+    }
+
     [Fact]
     public async Task RunAsync_StartsTwoLanesAndCancelsSiblingOnSuccess()
     {
@@ -269,6 +290,70 @@ public sealed class CourseSelectionEngineTests
     }
 
     [Fact]
+    public async Task RunAsync_RetryProgressTracksInFlightRequestsAndEndsWithCancellation()
+    {
+        using var cancellation = new CancellationTokenSource();
+        var events = new ConcurrentQueue<CourseSelectionSnapshot>();
+        var delay = new BlockingDelay();
+        var bothStarted = NewSignal();
+        var releaseFirst = NewSignal();
+        var releaseSecond = NewSignal();
+        var active = 0;
+        var calls = 0;
+        var transport = new ScriptedTransport(async (_, token) =>
+        {
+            var call = Interlocked.Increment(ref calls);
+            Interlocked.Increment(ref active);
+            if (call == 2)
+            {
+                bothStarted.TrySetResult();
+            }
+
+            try
+            {
+                await bothStarted.Task.WaitAsync(token);
+                await (call == 1 ? releaseFirst.Task : releaseSecond.Task).WaitAsync(token);
+                return Busy();
+            }
+            finally
+            {
+                Interlocked.Decrement(ref active);
+            }
+        });
+
+        var run = CreateEngine(delay: delay).RunAsync(
+            [Course("1")], transport, events.Enqueue, cancellation.Token);
+        await bothStarted.Task.WaitAsync(TimeSpan.FromSeconds(1));
+
+        releaseFirst.TrySetResult();
+        await delay.FirstWaitStarted.Task.WaitAsync(TimeSpan.FromSeconds(1));
+        Assert.Equal(1, active);
+        Assert.Equal(
+            CourseSelectionState.Racing,
+            events.Last(snapshot => snapshot.LatestResult == "系统繁忙").State);
+
+        releaseSecond.TrySetResult();
+        await delay.BothWaitsStarted.Task.WaitAsync(TimeSpan.FromSeconds(1));
+        Assert.Equal(0, active);
+        Assert.Equal(
+            CourseSelectionState.BackingOff,
+            events.Last(snapshot => snapshot.LatestResult == "系统繁忙").State);
+
+        cancellation.Cancel();
+        var result = await run.WaitAsync(TimeSpan.FromSeconds(2));
+
+        var published = events.ToArray();
+        var final = Assert.Single(result);
+        Assert.Equal(CourseSelectionState.Cancelled, final.State);
+        Assert.Equal(final, published[^1]);
+        Assert.True(published.Zip(
+            published.Skip(1),
+            (left, right) => left.Version < right.Version).All(value => value));
+        Assert.All(published, snapshot => Assert.True(snapshot.Elapsed >= TimeSpan.Zero));
+        Assert.All(published[..^1], snapshot => Assert.True(final.Elapsed >= snapshot.Elapsed));
+    }
+
+    [Fact]
     public async Task RunAsync_EmptyCourseListReturnsEmptyResult()
     {
         var transport = new ScriptedTransport((_, _) => throw new InvalidOperationException("must not be called"));
@@ -312,10 +397,12 @@ public sealed class CourseSelectionEngineTests
             () => delay.WaitAsync(TimeSpan.FromMinutes(1), cancellation.Token));
     }
 
-    private static CourseSelectionEngine CreateEngine(int maxConcurrency = 20) =>
+    private static CourseSelectionEngine CreateEngine(
+        int maxConcurrency = 20,
+        ICourseSelectionDelay? delay = null) =>
         new(
             new CourseSelectionResponseClassifier(),
-            new ImmediateDelay(),
+            delay ?? new ImmediateDelay(),
             new CourseSelectionOptions(2, maxConcurrency, 5));
 
     private static Course Course(string id) => new()
@@ -332,6 +419,9 @@ public sealed class CourseSelectionEngineTests
 
     private static CourseSelectionAttempt Unknown(string message) =>
         new(HttpStatusCode.OK, $"{{\"code\":500,\"msg\":\"{message}\"}}");
+
+    private static CourseSelectionAttempt Busy() =>
+        new(HttpStatusCode.OK, "{\"code\":500,\"msg\":\"系统繁忙\"}");
 
     private static TaskCompletionSource NewSignal() =>
         new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -361,6 +451,34 @@ public sealed class CourseSelectionEngineTests
 
         public Task WaitAsync(TimeSpan delay, CancellationToken token) =>
             Task.Delay(TimeSpan.Zero, token);
+    }
+
+    private sealed class BlockingDelay : ICourseSelectionDelay
+    {
+        private int waits;
+
+        public TaskCompletionSource FirstWaitStarted { get; } = NewSignal();
+
+        public TaskCompletionSource BothWaitsStarted { get; } = NewSignal();
+
+        public TimeSpan GetTransientDelay() => TimeSpan.Zero;
+
+        public TimeSpan GetNetworkDelay(int failureCount) => TimeSpan.Zero;
+
+        public TimeSpan GetRateLimitDelay(TimeSpan? retryAfter, int failureCount) =>
+            retryAfter ?? TimeSpan.Zero;
+
+        public Task WaitAsync(TimeSpan delay, CancellationToken token)
+        {
+            var count = Interlocked.Increment(ref waits);
+            FirstWaitStarted.TrySetResult();
+            if (count == 2)
+            {
+                BothWaitsStarted.TrySetResult();
+            }
+
+            return Task.Delay(Timeout.InfiniteTimeSpan, token);
+        }
     }
 
     private sealed class ScriptedTransport(
