@@ -1,7 +1,6 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
-using CommunityToolkit.Mvvm.Messaging.Messages;
 using iCourse.Messages;
 using iCourse.Models;
 using iCourse.Services;
@@ -11,10 +10,7 @@ using System.Threading.Tasks;
 
 namespace iCourse.ViewModels;
 
-public partial class MainWindowViewModel :
-    ObservableRecipient,
-    IRecipient<PropertyChangedMessage<string>>,
-    IRecipient<PropertyChangedMessage<bool>>
+public partial class MainWindowViewModel : ObservableObject
 {
     private readonly IJLUiCourseApi api;
     private readonly UserCredentials credentials;
@@ -33,19 +29,15 @@ public partial class MainWindowViewModel :
     private bool isProgressVisible;
 
     [ObservableProperty]
-    [NotifyPropertyChangedRecipients]
     private string username = string.Empty;
 
     [ObservableProperty]
-    [NotifyPropertyChangedRecipients]
     private string password = string.Empty;
 
     [ObservableProperty]
-    [NotifyPropertyChangedRecipients]
     private bool autoLogin;
 
     [ObservableProperty]
-    [NotifyPropertyChangedRecipients]
     private bool autoSelectBatch;
 
     [ObservableProperty]
@@ -85,7 +77,6 @@ public partial class MainWindowViewModel :
         IDialogService dialogs,
         IUiDispatcher dispatcher,
         IMessenger messenger)
-        : base(messenger)
     {
         this.api = api;
         this.credentials = credentials;
@@ -265,29 +256,11 @@ public partial class MainWindowViewModel :
         IsBannerVisible = false;
     }
 
-    public void Receive(PropertyChangedMessage<string> message)
-    {
-        if (message.PropertyName == nameof(Username))
-        {
-            credentials.Username = Username;
-        }
+    partial void OnUsernameChanged(string value) => credentials.Username = value;
 
-        if (message.PropertyName == nameof(Password))
-        {
-            credentials.Password = Password;
-        }
-    }
+    partial void OnPasswordChanged(string value) => credentials.Password = value;
 
-    public void Receive(PropertyChangedMessage<bool> message)
-    {
-        if (message.PropertyName == nameof(AutoLogin))
-        {
-            credentials.AutoLogin = AutoLogin;
-        }
+    partial void OnAutoLoginChanged(bool value) => credentials.AutoLogin = value;
 
-        if (message.PropertyName == nameof(AutoSelectBatch))
-        {
-            credentials.AutoSelectBatch = AutoSelectBatch;
-        }
-    }
+    partial void OnAutoSelectBatchChanged(bool value) => credentials.AutoSelectBatch = value;
 }

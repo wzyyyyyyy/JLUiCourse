@@ -23,6 +23,30 @@ public sealed class MainWindowViewModelTests
     }
 
     [Fact]
+    public void EditableCredentials_WriteThroughToInjectedCredentials()
+    {
+        var root = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        var credentials = new UserCredentials(new FakeAppPaths(root));
+        var viewModel = new MainWindowViewModel(
+            new FakeApi(),
+            credentials,
+            new FakeDialogService(),
+            new ImmediateUiDispatcher(),
+            new WeakReferenceMessenger());
+
+        viewModel.Username = "student";
+        viewModel.Password = "secret";
+        viewModel.AutoLogin = true;
+        viewModel.AutoSelectBatch = true;
+
+        Assert.Equal("student", credentials.Username);
+        Assert.Equal("secret", credentials.Password);
+        Assert.True(credentials.AutoLogin);
+        Assert.True(credentials.AutoSelectBatch);
+    }
+
+    [Fact]
     public void RunStartedAndRepeatedStatusChanges_KeepOneStableRowPerCourse()
     {
         var (viewModel, messenger, _) = CreateViewModel();
