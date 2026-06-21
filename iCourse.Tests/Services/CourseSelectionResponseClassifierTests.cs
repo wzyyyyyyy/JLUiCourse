@@ -26,6 +26,17 @@ public sealed class CourseSelectionResponseClassifierTests
     }
 
     [Fact]
+    public void Classify_CapacityTextOutsideJsonMessage_DoesNotOverrideSuccess()
+    {
+        var body = "{\"code\":200,\"msg\":\"选课成功\",\"notice\":\"课容量已满\"}";
+
+        var result = classifier.Classify(Attempt(body));
+
+        Assert.Equal(CourseSelectionDecision.Success, result.Decision);
+        Assert.Equal("选课成功", result.Reason);
+    }
+
+    [Fact]
     public void Classify_Code200CapacityFullMessage_ReturnsTerminalFailure()
     {
         var result = classifier.Classify(Attempt("{\"code\":200,\"msg\":\"课容量已满\"}"));
@@ -47,6 +58,18 @@ public sealed class CourseSelectionResponseClassifierTests
         var attempt = new CourseSelectionAttempt(
             HttpStatusCode.ServiceUnavailable,
             "课容量已满");
+
+        var result = classifier.Classify(attempt);
+
+        Assert.Equal(CourseSelectionDecision.TerminalFailure, result.Decision);
+    }
+
+    [Fact]
+    public void Classify_Http429CapacityFullMessage_ReturnsTerminalFailure()
+    {
+        var attempt = new CourseSelectionAttempt(
+            HttpStatusCode.TooManyRequests,
+            JsonMessage("课容量已满"));
 
         var result = classifier.Classify(attempt);
 

@@ -50,7 +50,11 @@ public sealed class CourseSelectionResponseClassifier
 
     public CourseSelectionClassification Classify(CourseSelectionAttempt attempt)
     {
-        if (attempt.Body.Contains(CapacityFullFragment, StringComparison.Ordinal))
+        var isJson = TryParseJson(attempt.Body, out var json);
+        var message = json?["msg"]?.ToString() ?? "服务器未返回原因";
+        var capacitySource = isJson ? message : attempt.Body;
+
+        if (capacitySource.Contains(CapacityFullFragment, StringComparison.Ordinal))
         {
             return new(
                 CourseSelectionDecision.TerminalFailure,
@@ -82,22 +86,15 @@ public sealed class CourseSelectionResponseClassifier
                 $"服务器暂时不可用 ({(int)statusCode})");
         }
 
-        string message;
-        int code;
-
-        try
-        {
-            var json = JObject.Parse(attempt.Body);
-            code = json["code"]?.ToObject<int>() ?? 0;
-            message = json["msg"]?.ToString() ?? "服务器未返回原因";
-        }
-        catch
+        if (json is null)
         {
             return new(
                 CourseSelectionDecision.Retry,
                 SummarizeUnknownResponse(attempt.Body),
                 IsUnknown: true);
         }
+
+        _ = int.TryParse(json["code"]?.ToString(), out var code);
 
         if (code == 200 || message.Contains("已在选课结果中", StringComparison.Ordinal))
         {
@@ -130,6 +127,20 @@ public sealed class CourseSelectionResponseClassifier
 
     private static bool ContainsAny(string message, IEnumerable<string> fragments) =>
         fragments.Any(fragment => message.Contains(fragment, StringComparison.Ordinal));
+
+    private static bool TryParseJson(string response, out JObject? json)
+    {
+        try
+        {
+            json = JToken.Parse(response) as JObject;
+            return true;
+        }
+        catch
+        {
+            json = null;
+            return false;
+        }
+    }
 
     private static string SummarizeUnknownResponse(string response)
     {
