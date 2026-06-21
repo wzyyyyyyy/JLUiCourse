@@ -124,7 +124,43 @@ public sealed class CourseSelectionHttpTransportTests
         cancellation.Cancel();
 
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => send);
-        Assert.Equal(cancellation.Token, content.ReadToken);
+        Assert.True(content.ReadToken.CanBeCanceled);
+        Assert.True(content.ReadToken.IsCancellationRequested);
+    }
+
+    [Fact]
+    public async Task SendAsync_HttpClientTimeoutCoversBlockedBody()
+    {
+        var content = new CancellationAwareContent();
+        var handler = new CapturingHandler((_, _) =>
+            new HttpResponseMessage(HttpStatusCode.OK) { Content = content });
+        using var client = CreateClient(handler);
+        client.Timeout = TimeSpan.FromMilliseconds(50);
+        var transport = new CourseSelectionHttpTransport(client, "batch");
+        using var cleanup = new CancellationTokenSource();
+
+        var send = transport.SendAsync(Course(), cleanup.Token);
+        await content.ReadStarted.Task.WaitAsync(TimeSpan.FromSeconds(1));
+
+        try
+        {
+            var completed = await Task.WhenAny(send, Task.Delay(TimeSpan.FromSeconds(1)));
+            Assert.Same(send, completed);
+            await Assert.ThrowsAnyAsync<TaskCanceledException>(() => send);
+            Assert.False(cleanup.IsCancellationRequested);
+        }
+        finally
+        {
+            cleanup.Cancel();
+            try
+            {
+                await send;
+            }
+            catch
+            {
+                // The expected timeout or cleanup cancellation is asserted above.
+            }
+        }
     }
 
     private static HttpClient CreateClient(HttpMessageHandler handler) =>

@@ -143,7 +143,7 @@ public class JLUiCourseApi(
         var wasCancelled = false;
         try
         {
-            var courses = await GetFavoriteCoursesAsync();
+            var courses = await GetFavoriteCoursesAsync(runToken);
             runToken.ThrowIfCancellationRequested();
 
             if (courses.Count == 0)
@@ -172,6 +172,13 @@ public class JLUiCourseApi(
         {
             wasCancelled = true;
             logger.WriteLine("选课任务已取消");
+        }
+        catch (FavoriteCoursesException exception)
+        {
+            logger.WriteLine($"读取收藏失败: {exception}");
+            messenger.Send(new SystemBannerMessage(
+                $"读取收藏失败：{exception.Message}",
+                SystemBannerSeverity.Error));
         }
         catch (Exception exception)
         {
@@ -320,33 +327,34 @@ public class JLUiCourseApi(
         return batchInfos;
     }
 
-    private async Task<List<Course>> GetFavoriteCoursesAsync()
+    private async Task<List<Course>> GetFavoriteCoursesAsync(CancellationToken token)
     {
         var coursesList = new List<Course>();
 
         client.SetReferer("https://icourses.jlu.edu.cn/xsxk/elective/grablessons?batchId=" + batch.batchId);
-        var response = await client.HttpPostAsync("xsxk/sc/clazz/list", null);
+        var response = await client.HttpPostAsync("xsxk/sc/clazz/list", null, token);
         var json = JObject.Parse(response);
 
-        if (json["code"]?.ToObject<int>() == 200)
+        if (json["code"]?.ToObject<int>() != 200)
         {
-            var courses = json["data"];
-            if (courses is not null)
-            {
-                foreach (var course in courses)
-                {
-                    coursesList.Add(new Course(course));
-                }
-            }
+            var message = json["msg"]?.ToString() ?? "服务器未返回原因";
+            throw new FavoriteCoursesException(message);
         }
-        else
+
+        var courses = json["data"];
+        if (courses is not null)
         {
-            logger.WriteLine(json["msg"]?.ToString());
+            foreach (var course in courses)
+            {
+                coursesList.Add(new Course(course));
+            }
         }
 
         logger.WriteLine("收藏中的课程:\n" + string.Join("\n", coursesList.Select(c => c.Name)));
         return coursesList;
     }
+
+    private sealed class FavoriteCoursesException(string message) : Exception(message);
 
     private void KeepOnline()
     {

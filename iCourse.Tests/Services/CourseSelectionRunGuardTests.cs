@@ -50,6 +50,24 @@ public sealed class CourseSelectionRunGuardTests
     }
 
     [Fact]
+    public void Complete_DisposesCompletedSourceAndLeavesNextRunUsable()
+    {
+        var guard = new CourseSelectionRunGuard();
+        Assert.True(guard.TryBegin(out var completed));
+        _ = completed.WaitHandle;
+
+        guard.Complete();
+        guard.Complete();
+
+        Assert.Throws<ObjectDisposedException>(() => _ = completed.WaitHandle);
+        Assert.True(guard.TryBegin(out var fresh));
+        Assert.False(fresh.IsCancellationRequested);
+        guard.Cancel();
+        Assert.True(fresh.IsCancellationRequested);
+        guard.Complete();
+    }
+
+    [Fact]
     public async Task TryBegin_ConcurrentRaceHasExactlyOneWinner()
     {
         var guard = new CourseSelectionRunGuard();

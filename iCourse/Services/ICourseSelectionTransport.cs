@@ -44,13 +44,19 @@ public sealed class CourseSelectionHttpTransport : ICourseSelectionTransport
         request.Headers.Referrer = referrer;
         request.Headers.Add("Origin", Origin);
 
+        using var requestTimeout = CancellationTokenSource.CreateLinkedTokenSource(token);
+        if (client.Timeout != Timeout.InfiniteTimeSpan)
+        {
+            requestTimeout.CancelAfter(client.Timeout);
+        }
+
         using var response = await client.SendAsync(
                 request,
                 HttpCompletionOption.ResponseHeadersRead,
-                token)
+                requestTimeout.Token)
             .ConfigureAwait(false);
         var body = await response.Content
-            .ReadAsStringAsync(token)
+            .ReadAsStringAsync(requestTimeout.Token)
             .ConfigureAwait(false);
         var retryAfter = response.Headers.RetryAfter?.Delta;
         if (retryAfter is null && response.Headers.RetryAfter?.Date is { } retryDate)

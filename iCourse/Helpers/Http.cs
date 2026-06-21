@@ -4,6 +4,7 @@ using System;
 using System.Net.Http;
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace iCourse.Helpers;
@@ -12,13 +13,17 @@ internal sealed class Http : HttpClient
 {
     private readonly AsyncRetryPolicy retryPolicy;
     private readonly Logger logger;
+    private readonly object dynamicHeadersGate = new();
+    private string? origin;
+    private Uri? referrer;
 
     public Http(TimeSpan timeout, Logger logger)
-        : base(new HttpClientHandler
-        {
-            UseCookies = true,
-            ServerCertificateCustomValidationCallback = (HttpRequestMessage request, X509Certificate2? certificate, X509Chain? chain, SslPolicyErrors sslPolicyErrors) => true
-        })
+        : this(timeout, logger, CreateHandler())
+    {
+    }
+
+    internal Http(TimeSpan timeout, Logger logger, HttpMessageHandler handler)
+        : base(handler)
     {
         this.logger = logger;
         Timeout = timeout;
@@ -46,16 +51,30 @@ internal sealed class Http : HttpClient
                 });
     }
 
+    private static HttpMessageHandler CreateHandler() =>
+        new HttpClientHandler
+        {
+            UseCookies = true,
+            ServerCertificateCustomValidationCallback = (HttpRequestMessage request, X509Certificate2? certificate, X509Chain? chain, SslPolicyErrors sslPolicyErrors) => true
+        };
+
     public void SetOrigin(string origin)
     {
-        DefaultRequestHeaders.Remove("Origin");
-        DefaultRequestHeaders.Add("Origin", origin);
+        ArgumentNullException.ThrowIfNull(origin);
+        lock (dynamicHeadersGate)
+        {
+            this.origin = origin;
+        }
     }
 
     public void SetReferer(string referer)
     {
-        DefaultRequestHeaders.Remove("Referer");
-        DefaultRequestHeaders.Add("Referer", referer);
+        ArgumentNullException.ThrowIfNull(referer);
+        var uri = new Uri(referer);
+        lock (dynamicHeadersGate)
+        {
+            referrer = uri;
+        }
     }
 
     public void AddHeader(string key, string value)
@@ -69,6 +88,7 @@ internal sealed class Http : HttpClient
         return await retryPolicy.ExecuteAsync(async () =>
         {
             var request = new HttpRequestMessage(HttpMethod.Get, url);
+            ApplyDynamicHeaders(request);
 
             using var response = await SendAsync(request);
             response.EnsureSuccessStatusCode();
@@ -78,16 +98,43 @@ internal sealed class Http : HttpClient
 
     public async Task<string> HttpPostAsync(string url, HttpContent? content)
     {
-        return await retryPolicy.ExecuteAsync(async () =>
+        return await HttpPostAsync(url, content, CancellationToken.None);
+    }
+
+    public async Task<string> HttpPostAsync(
+        string url,
+        HttpContent? content,
+        CancellationToken token)
+    {
+        return await retryPolicy.ExecuteAsync(async cancellationToken =>
         {
             var request = new HttpRequestMessage(HttpMethod.Post, url)
             {
                 Content = content
             };
+            ApplyDynamicHeaders(request);
 
-            using var response = await SendAsync(request);
+            using var response = await SendAsync(request, cancellationToken);
             response.EnsureSuccessStatusCode();
-            return await response.Content.ReadAsStringAsync();
-        });
+            return await response.Content.ReadAsStringAsync(cancellationToken);
+        }, token);
+    }
+
+    private void ApplyDynamicHeaders(HttpRequestMessage request)
+    {
+        string? originSnapshot;
+        Uri? referrerSnapshot;
+        lock (dynamicHeadersGate)
+        {
+            originSnapshot = origin;
+            referrerSnapshot = referrer;
+        }
+
+        if (originSnapshot is not null)
+        {
+            request.Headers.Add("Origin", originSnapshot);
+        }
+
+        request.Headers.Referrer = referrerSnapshot;
     }
 }
