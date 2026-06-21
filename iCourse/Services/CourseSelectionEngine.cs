@@ -169,13 +169,7 @@ public sealed class CourseSelectionEngine
         }
 
         courseFault.ThrowIfCaptured();
-        var final = runtime.GetFinalOrCancel();
-        if (!runtime.TryMarkFinalPublished())
-        {
-            return final;
-        }
-
-        return progressPublisher.Publish(final);
+        return progressPublisher.Publish(runtime.GetFinalForPublication);
     }
 
     private async Task RunLaneWithFaultCancellationAsync(
@@ -233,13 +227,21 @@ public sealed class CourseSelectionEngine
 
             try
             {
-                if (!runtime.TryBeginAttempt(out var racing))
+                if (!progressPublisher.TryPublish(
+                        () =>
+                        {
+                            if (!runtime.TryBeginAttempt(out var racing))
+                            {
+                                return null;
+                            }
+
+                            beganAttempt = true;
+                            return racing;
+                        }))
                 {
                     return;
                 }
 
-                beganAttempt = true;
-                progressPublisher.Publish(racing);
                 CourseSelectionAttempt attempt;
                 try
                 {
@@ -255,14 +257,15 @@ public sealed class CourseSelectionEngine
                 }
                 finally
                 {
-                    runtime.EndAttempt();
+                    progressPublisher.Execute(runtime.EndAttempt);
                     beganAttempt = false;
                 }
 
                 var classification = classifier.Classify(attempt);
-                var outcome = runtime.ProcessClassification(
-                    classification,
-                    options.UnknownResponseLimit);
+                var outcome = progressPublisher.Execute(() =>
+                    runtime.ProcessClassification(
+                        classification,
+                        options.UnknownResponseLimit));
 
                 if (outcome == ClassificationOutcome.Finalized)
                 {
@@ -282,18 +285,21 @@ public sealed class CourseSelectionEngine
                         ? delay.GetTransientDelay()
                         : delay.GetNetworkDelay(retryCount);
 
-                if (!runtime.TryCreateRetrySnapshot(classification.Reason, out var retrying))
+                if (!progressPublisher.TryPublish(
+                        () => runtime.TryCreateRetrySnapshot(
+                            classification.Reason,
+                            out var retrying)
+                            ? retrying
+                            : null))
                 {
                     return;
                 }
-
-                progressPublisher.Publish(retrying);
             }
             finally
             {
                 if (beganAttempt)
                 {
-                    runtime.EndAttempt();
+                    progressPublisher.Execute(runtime.EndAttempt);
                 }
 
                 limiter.Release();
@@ -435,28 +441,20 @@ public sealed class CourseSelectionEngine
             }
         }
 
-        public CourseSelectionSnapshot GetFinalOrCancel()
+        public CourseSelectionSnapshot GetFinalForPublication()
         {
             lock (sync)
             {
                 finalSnapshot ??= CreateSnapshot(
                     CourseSelectionState.Cancelled,
                     "已停止");
-                return finalSnapshot;
-            }
-        }
-
-        public bool TryMarkFinalPublished()
-        {
-            lock (sync)
-            {
                 if (finalPublished)
                 {
-                    return false;
+                    throw new InvalidOperationException("Final progress was already published.");
                 }
 
                 finalPublished = true;
-                return true;
+                return finalSnapshot;
             }
         }
 
@@ -478,14 +476,51 @@ public sealed class CourseSelectionEngine
         private readonly object sync = new();
         private long version;
 
-        public CourseSelectionSnapshot Publish(CourseSelectionSnapshot snapshot)
+        public void Execute(Action action)
         {
             lock (sync)
             {
-                var versioned = snapshot with { Version = ++version };
-                progress(versioned);
-                return versioned;
+                action();
             }
+        }
+
+        public TResult Execute<TResult>(Func<TResult> action)
+        {
+            lock (sync)
+            {
+                return action();
+            }
+        }
+
+        public bool TryPublish(Func<CourseSelectionSnapshot?> snapshotFactory)
+        {
+            lock (sync)
+            {
+                var snapshot = snapshotFactory();
+                if (snapshot is null)
+                {
+                    return false;
+                }
+
+                PublishCore(snapshot);
+                return true;
+            }
+        }
+
+        public CourseSelectionSnapshot Publish(
+            Func<CourseSelectionSnapshot> snapshotFactory)
+        {
+            lock (sync)
+            {
+                return PublishCore(snapshotFactory());
+            }
+        }
+
+        private CourseSelectionSnapshot PublishCore(CourseSelectionSnapshot snapshot)
+        {
+            var versioned = snapshot with { Version = ++version };
+            progress(versioned);
+            return versioned;
         }
     }
 

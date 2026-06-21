@@ -13,6 +13,9 @@ public interface ICourseSelectionDelay
 
 public sealed class AggressiveCourseSelectionDelay : ICourseSelectionDelay
 {
+    private static readonly TimeSpan MaximumTaskDelay =
+        TimeSpan.FromMilliseconds(4_294_967_294);
+
     public TimeSpan GetTransientDelay() =>
         TimeSpan.FromMilliseconds(Random.Shared.Next(40, 101));
 
@@ -23,7 +26,9 @@ public sealed class AggressiveCourseSelectionDelay : ICourseSelectionDelay
             TimeSpan.FromSeconds(1));
 
     public TimeSpan GetRateLimitDelay(TimeSpan? retryAfter, int failureCount) =>
-        retryAfter is { } requested && requested > TimeSpan.Zero
+        retryAfter is { } requested &&
+        requested > TimeSpan.Zero &&
+        requested <= MaximumTaskDelay
             ? requested
             : ExponentialDelay(
                 TimeSpan.FromMilliseconds(250),

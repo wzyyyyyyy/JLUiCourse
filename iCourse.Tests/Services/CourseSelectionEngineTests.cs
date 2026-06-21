@@ -476,6 +476,66 @@ public sealed class CourseSelectionEngineTests
     }
 
     [Fact]
+    public async Task RunAsync_ConcurrentRetriesPublishMonotonicSnapshots()
+    {
+        const int rounds = 12;
+        const int courseCount = 12;
+        const int attemptsBeforeSuccess = 60;
+
+        for (var round = 0; round < rounds; round++)
+        {
+            var attempts = new ConcurrentDictionary<string, int>();
+            var events = new ConcurrentDictionary<string, ConcurrentQueue<CourseSelectionSnapshot>>();
+            var transport = new ScriptedTransport(async (course, token) =>
+            {
+                await Task.Yield();
+                token.ThrowIfCancellationRequested();
+                var attempt = attempts.AddOrUpdate(course.CourseId, 1, (_, current) => current + 1);
+                return attempt >= attemptsBeforeSuccess ? Success() : Busy();
+            });
+            var courses = Enumerable.Range(1, courseCount)
+                .Select(index => Course($"{round}-{index}"))
+                .ToList();
+
+            var result = await new CourseSelectionEngine(
+                    new CourseSelectionResponseClassifier(),
+                    new YieldingDelay(),
+                    new CourseSelectionOptions())
+                .RunAsync(
+                    courses,
+                    transport,
+                    snapshot =>
+                    {
+                        Thread.Yield();
+                        events.GetOrAdd(
+                            snapshot.CourseId,
+                            _ => new ConcurrentQueue<CourseSelectionSnapshot>()).Enqueue(snapshot);
+                    },
+                    CancellationToken.None)
+                .WaitAsync(TimeSpan.FromSeconds(2));
+
+            Assert.All(result, final =>
+            {
+                var published = events[final.CourseId].ToArray();
+                Assert.Equal(final, published[^1]);
+                Assert.Equal(published, published.OrderBy(snapshot => snapshot.Version));
+                Assert.All(
+                    published.Zip(published.Skip(1)),
+                    pair => Assert.True(pair.First.AttemptCount <= pair.Second.AttemptCount));
+
+                foreach (var pair in published.Zip(published.Skip(1)))
+                {
+                    if (pair.First.State == CourseSelectionState.BackingOff &&
+                        pair.Second.State == CourseSelectionState.Racing)
+                    {
+                        Assert.True(pair.Second.AttemptCount > pair.First.AttemptCount);
+                    }
+                }
+            });
+        }
+    }
+
+    [Fact]
     public async Task RunAsync_EmptyCourseListReturnsEmptyResult()
     {
         var transport = new ScriptedTransport((_, _) => throw new InvalidOperationException("must not be called"));
@@ -519,6 +579,16 @@ public sealed class CourseSelectionEngineTests
         var result = delay.GetRateLimitDelay(
             TimeSpan.FromMilliseconds(milliseconds),
             failureCount: 1);
+
+        Assert.Equal(TimeSpan.FromMilliseconds(250), result);
+    }
+
+    [Fact]
+    public void AggressiveDelay_UnsupportedLargeRetryAfterUsesNormalBackoff()
+    {
+        var delay = new AggressiveCourseSelectionDelay();
+
+        var result = delay.GetRateLimitDelay(TimeSpan.MaxValue, failureCount: 1);
 
         Assert.Equal(TimeSpan.FromMilliseconds(250), result);
     }
@@ -629,6 +699,22 @@ public sealed class CourseSelectionEngineTests
 
         public Task WaitAsync(TimeSpan delay, CancellationToken token) =>
             Task.FromException(exception);
+    }
+
+    private sealed class YieldingDelay : ICourseSelectionDelay
+    {
+        public TimeSpan GetTransientDelay() => TimeSpan.Zero;
+
+        public TimeSpan GetNetworkDelay(int failureCount) => TimeSpan.Zero;
+
+        public TimeSpan GetRateLimitDelay(TimeSpan? retryAfter, int failureCount) =>
+            TimeSpan.Zero;
+
+        public async Task WaitAsync(TimeSpan delay, CancellationToken token)
+        {
+            await Task.Yield();
+            token.ThrowIfCancellationRequested();
+        }
     }
 
     private sealed class ScriptedTransport(
