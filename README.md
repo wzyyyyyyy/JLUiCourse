@@ -4,6 +4,8 @@
 ![downloads](https://img.shields.io/github/downloads/wzyyyyyyy/JLUiCourse/total.svg)
 
 JLUiCourse 是一个用于学习和研究的吉林大学选课辅助桌面客户端。当前版本已迁移到 Avalonia，可在 Windows、Linux 和 macOS 上构建运行。
+<img width="1960" height="1176" alt="9159c60ec52e71bc0bbd828e26da3f21" src="https://github.com/user-attachments/assets/ccd6e11c-7f66-4308-9580-508992a4648d" />
+
 
 ## 运行
 
