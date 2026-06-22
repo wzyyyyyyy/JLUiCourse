@@ -9,6 +9,7 @@ public sealed class CourseSelectionResponseClassifier
 {
     private const int MaxReasonLength = 120;
     private const string CapacityFullFragment = "课容量已满";
+    private const string TemporarilyUnavailableFragment = "该教学班不可选";
 
     private static readonly Regex HtmlTagPattern = new(
         "<[^>]+>",
@@ -42,6 +43,7 @@ public sealed class CourseSelectionResponseClassifier
     private static readonly string[] TransientFragments =
     [
         "尚未开始",
+        "暂未开始",
         "未到选课时间",
         "系统繁忙",
         "系统异常",
@@ -73,6 +75,11 @@ public sealed class CourseSelectionResponseClassifier
             if (code == 200 || message.Contains("已在选课结果中", StringComparison.Ordinal))
             {
                 return new(CourseSelectionDecision.Success, message);
+            }
+
+            if (message.Contains(TemporarilyUnavailableFragment, StringComparison.Ordinal))
+            {
+                return new(CourseSelectionDecision.Retry, message);
             }
 
             if (ContainsAny(message, PermanentFailureFragments))

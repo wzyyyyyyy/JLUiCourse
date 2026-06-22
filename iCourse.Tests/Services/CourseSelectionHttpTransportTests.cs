@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Headers;
 using iCourse.Models;
 using iCourse.Services;
+using Newtonsoft.Json.Linq;
 
 namespace iCourse.Tests.Services;
 
@@ -38,13 +39,62 @@ public sealed class CourseSelectionHttpTransportTests
                 captured.Referrer.AbsoluteUri);
             Assert.Equal("https://icourses.jlu.edu.cn", captured.Origin);
             Assert.Equal(
-                "clazzId=course%2F1&secretVal=secret+value&clazzType=XGKC",
+                "clazzId=course%2F1&secretVal=secret+value&clazzType=Elective",
                 captured.Body);
             Assert.Equal("application/x-www-form-urlencoded", captured.ContentType);
         }
 
         Assert.Null(client.DefaultRequestHeaders.Referrer);
         Assert.False(client.DefaultRequestHeaders.Contains("Origin"));
+    }
+
+    [Fact]
+    public async Task SendAsync_UsesCourseSelectionTypeInForm()
+    {
+        var handler = new CapturingHandler((_, _) => new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent("response")
+        });
+        using var client = CreateClient(handler);
+        var transport = new CourseSelectionHttpTransport(client, "batch");
+        var course = Course();
+        course.SelectType = ClassSelectType.RestrictedElective;
+
+        await transport.SendAsync(course, CancellationToken.None);
+
+        Assert.Equal(
+            "clazzId=course%2F1&secretVal=secret+value&clazzType=RestrictedElective",
+            Assert.Single(handler.Requests).Body);
+    }
+
+    [Fact]
+    public async Task SendAsync_UsesServerTeachingClassTypeFromFavoriteCourse()
+    {
+        var handler = new CapturingHandler((_, _) => new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent("response")
+        });
+        using var client = CreateClient(handler);
+        var transport = new CourseSelectionHttpTransport(client, "batch");
+        var course = new Course(JObject.Parse("""
+            {
+              "KCM": "企业管理",
+              "KXH": "01",
+              "SKJS": "教师",
+              "XQ": "中心校区",
+              "YPSJDD": "教室",
+              "secretVal": "secret value",
+              "JXBID": "course/1",
+              "KCXZ": "选修",
+              "teachingClassType": "TJKC"
+            }
+            """));
+
+        await transport.SendAsync(course, CancellationToken.None);
+
+        Assert.Equal(
+            "clazzId=course%2F1&secretVal=secret+value&clazzType=TJKC",
+            Assert.Single(handler.Requests).Body);
     }
 
     [Fact]

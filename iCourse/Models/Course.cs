@@ -22,6 +22,7 @@ namespace iCourse.Models
             ClassLocation = json["YPSJDD"].ToString();
             SecretVal = json["secretVal"].ToString();
             CourseId = json["JXBID"].ToString();
+            TeachingClassType = json["teachingClassType"]?.ToString() ?? string.Empty;
 
             SelectType = json["KCXZ"].ToString() switch
             {
@@ -36,6 +37,7 @@ namespace iCourse.Models
         public string TeacherName { get; set; }
         public string Campus { get; set; }
         public ClassSelectType SelectType { get; set; }
+        public string TeachingClassType { get; set; } = string.Empty;
         public string ClassLocation { get; set; }
         public string SecretVal { get; set; }
     }

@@ -38,7 +38,9 @@ public sealed class CourseSelectionHttpTransport : ICourseSelectionTransport
                 {
                     ["clazzId"] = course.CourseId,
                     ["secretVal"] = course.SecretVal,
-                    ["clazzType"] = "XGKC"
+                    ["clazzType"] = string.IsNullOrWhiteSpace(course.TeachingClassType)
+                        ? course.SelectType.ToString()
+                        : course.TeachingClassType
                 })
         };
         request.Headers.Referrer = referrer;

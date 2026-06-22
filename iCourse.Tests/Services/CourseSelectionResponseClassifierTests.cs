@@ -124,6 +124,8 @@ public sealed class CourseSelectionResponseClassifierTests
 
     [Theory]
     [InlineData("选课尚未开始")]
+    [InlineData("本轮次选课暂未开始")]
+    [InlineData("该教学班不可选")]
     [InlineData("未到选课时间")]
     [InlineData("系统繁忙")]
     [InlineData("系统异常")]
