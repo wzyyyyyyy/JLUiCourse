@@ -45,6 +45,12 @@ class PackagingContractTests(unittest.TestCase):
         self.assertIn("notarization", script)
         self.assertIn("hdiutil create", script)
 
+    def test_windows_installer_uses_bundled_inno_language_files(self):
+        script = (ROOT / "scripts" / "package" / "windows.ps1").read_text(encoding="utf-8")
+
+        self.assertIn('MessagesFile: "compiler:Default.isl"', script)
+        self.assertNotIn("ChineseSimplified.isl", script)
+
     def test_projects_and_ci_target_dotnet_10(self):
         project_files = [
             ROOT / "iCourse" / "iCourse.csproj",
