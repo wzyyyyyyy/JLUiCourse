@@ -96,6 +96,33 @@ public sealed class CourseSelectionResponseClassifierTests
     }
 
     [Theory]
+    [InlineData("批次已结束，请稍后再试")]
+    [InlineData("时间冲突，请稍后再试")]
+    public void Classify_PermanentBusinessMessageWithRetryAdvice_ReturnsTerminalFailure(string message)
+    {
+        var result = classifier.Classify(Attempt(JsonMessage(message)));
+
+        Assert.Equal(CourseSelectionDecision.TerminalFailure, result.Decision);
+        Assert.Equal(message, result.Reason);
+    }
+
+    [Theory]
+    [InlineData(HttpStatusCode.TooManyRequests)]
+    [InlineData(HttpStatusCode.ServiceUnavailable)]
+    public void Classify_TransientHttpStatusWithPermanentJsonMessage_ReturnsTerminalFailure(
+        HttpStatusCode statusCode)
+    {
+        var attempt = new CourseSelectionAttempt(
+            statusCode,
+            JsonMessage("批次已结束"));
+
+        var result = classifier.Classify(attempt);
+
+        Assert.Equal(CourseSelectionDecision.TerminalFailure, result.Decision);
+        Assert.Equal("批次已结束", result.Reason);
+    }
+
+    [Theory]
     [InlineData("选课尚未开始")]
     [InlineData("未到选课时间")]
     [InlineData("系统繁忙")]
@@ -124,6 +151,17 @@ public sealed class CourseSelectionResponseClassifierTests
     [InlineData("请稍后再试")]
     public void Classify_RateLimitBusinessMessage_ReturnsRateLimited(string message)
     {
+        var result = classifier.Classify(Attempt(JsonMessage(message)));
+
+        Assert.Equal(CourseSelectionDecision.RateLimited, result.Decision);
+        Assert.Equal(message, result.Reason);
+    }
+
+    [Fact]
+    public void Classify_FrequentRequestWithRetryAdvice_ReturnsRateLimited()
+    {
+        const string message = "请求过于频繁，请稍后再试";
+
         var result = classifier.Classify(Attempt(JsonMessage(message)));
 
         Assert.Equal(CourseSelectionDecision.RateLimited, result.Decision);

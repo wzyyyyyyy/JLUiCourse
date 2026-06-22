@@ -66,6 +66,21 @@ public sealed class CourseSelectionResponseClassifier
             return new(CourseSelectionDecision.Retry, attempt.Error);
         }
 
+        if (json is not null)
+        {
+            _ = int.TryParse(json["code"]?.ToString(), out var code);
+
+            if (code == 200 || message.Contains("已在选课结果中", StringComparison.Ordinal))
+            {
+                return new(CourseSelectionDecision.Success, message);
+            }
+
+            if (ContainsAny(message, PermanentFailureFragments))
+            {
+                return new(CourseSelectionDecision.TerminalFailure, message);
+            }
+        }
+
         if (attempt.StatusCode == HttpStatusCode.TooManyRequests)
         {
             return new(
@@ -94,24 +109,12 @@ public sealed class CourseSelectionResponseClassifier
                 IsUnknown: true);
         }
 
-        _ = int.TryParse(json["code"]?.ToString(), out var code);
-
-        if (code == 200 || message.Contains("已在选课结果中", StringComparison.Ordinal))
-        {
-            return new(CourseSelectionDecision.Success, message);
-        }
-
         if (ContainsAny(message, RateLimitFragments))
         {
             return new(
                 CourseSelectionDecision.RateLimited,
                 message,
                 attempt.RetryAfter);
-        }
-
-        if (ContainsAny(message, PermanentFailureFragments))
-        {
-            return new(CourseSelectionDecision.TerminalFailure, message);
         }
 
         if (ContainsAny(message, TransientFragments))
