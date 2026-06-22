@@ -148,6 +148,8 @@ public class JLUiCourseApi(
 
             if (courses.Count == 0)
             {
+                messenger.Send(new CourseSelectionRunStartedMessage(
+                    Array.Empty<CourseSelectionSnapshot>()));
                 messenger.Send(new SystemBannerMessage(
                     "收藏中没有可选课程",
                     SystemBannerSeverity.Warning));

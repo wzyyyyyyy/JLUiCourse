@@ -55,6 +55,27 @@ public sealed class JLUiCourseApiTests
         Assert.Single(fixture.Completed);
     }
 
+    [Fact]
+    public async Task StartSelectClassAsync_EmptyFavoritesClearsRowsBeforeWarningAndCompletion()
+    {
+        var handler = new StaticResponseHandler(
+            "{\"code\":200,\"data\":[]}");
+        using var fixture = CreateFixture(handler);
+
+        await fixture.Api.StartSelectClassAsync();
+
+        var started = Assert.Single(fixture.Started);
+        Assert.Empty(started.Snapshots);
+        var banner = Assert.Single(fixture.Banners);
+        Assert.Equal("收藏中没有可选课程", banner.Text);
+        Assert.Equal(SystemBannerSeverity.Warning, banner.Severity);
+        var completed = Assert.Single(fixture.Completed);
+        Assert.False(completed.WasCancelled);
+        Assert.Equal(["started", "banner", "completed"], fixture.Events);
+        Assert.Equal(1, handler.CallCount);
+        Assert.Equal("/xsxk/sc/clazz/list", Assert.Single(handler.Paths));
+    }
+
     private static ApiFixture CreateFixture(HttpMessageHandler handler)
     {
         var root = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
@@ -107,17 +128,36 @@ public sealed class JLUiCourseApiTests
             this.messenger = messenger;
             messenger.Register<SystemBannerMessage>(
                 recipient,
-                (_, message) => Banners.Enqueue(message));
+                (_, message) =>
+                {
+                    Banners.Enqueue(message);
+                    Events.Enqueue("banner");
+                });
+            messenger.Register<CourseSelectionRunStartedMessage>(
+                recipient,
+                (_, message) =>
+                {
+                    Started.Enqueue(message);
+                    Events.Enqueue("started");
+                });
             messenger.Register<CourseSelectionRunCompletedMessage>(
                 recipient,
-                (_, message) => Completed.Enqueue(message));
+                (_, message) =>
+                {
+                    Completed.Enqueue(message);
+                    Events.Enqueue("completed");
+                });
         }
 
         public JLUiCourseApi Api { get; }
 
         public ConcurrentQueue<SystemBannerMessage> Banners { get; } = new();
 
+        public ConcurrentQueue<CourseSelectionRunStartedMessage> Started { get; } = new();
+
         public ConcurrentQueue<CourseSelectionRunCompletedMessage> Completed { get; } = new();
+
+        public ConcurrentQueue<string> Events { get; } = new();
 
         public void Dispose()
         {
@@ -168,10 +208,20 @@ public sealed class JLUiCourseApiTests
 
     private sealed class StaticResponseHandler(string body) : HttpMessageHandler
     {
+        private int callCount;
+
+        public int CallCount => Volatile.Read(ref callCount);
+
+        public ConcurrentQueue<string> Paths { get; } = new();
+
         protected override Task<HttpResponseMessage> SendAsync(
             HttpRequestMessage request,
-            CancellationToken cancellationToken) =>
-            Task.FromResult(Response(body));
+            CancellationToken cancellationToken)
+        {
+            Interlocked.Increment(ref callCount);
+            Paths.Enqueue(request.RequestUri?.AbsolutePath ?? string.Empty);
+            return Task.FromResult(Response(body));
+        }
     }
 
     private static HttpResponseMessage Response(string body) =>
