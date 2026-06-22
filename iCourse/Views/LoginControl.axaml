@@ -22,7 +22,12 @@
     <Button Content="开始选课"
             Height="32"
             IsVisible="{Binding AreAfterLoginButtonsVisible}"
+            IsEnabled="{Binding CanStartSelection}"
             Command="{Binding StartSelectCourseCommand}" />
+    <Button Content="停止选课"
+            Height="32"
+            IsVisible="{Binding IsSelectionRunning}"
+            Command="{Binding StopSelectCourseCommand}" />
     <Button Content="查询课程"
             Height="32"
             IsVisible="{Binding AreAfterLoginButtonsVisible}"

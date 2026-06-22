@@ -65,9 +65,7 @@ public sealed class HttpTests
     {
         var root = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(Path.Combine(root, "Logs"));
-        var logger = new Logger(
-            new ImmediateUiDispatcher(),
-            new FakeAppPaths(root));
+        var logger = new Logger(new FakeAppPaths(root));
         logger.Initialize();
         return logger;
     }

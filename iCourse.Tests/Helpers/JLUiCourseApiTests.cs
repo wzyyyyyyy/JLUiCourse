@@ -60,7 +60,7 @@ public sealed class JLUiCourseApiTests
         var root = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(Path.Combine(root, "Logs"));
         var paths = new FakeAppPaths(root);
-        var logger = new Logger(new ImmediateUiDispatcher(), paths);
+        var logger = new Logger(paths);
         logger.Initialize();
         var messenger = new StrongReferenceMessenger();
         var api = new JLUiCourseApi(

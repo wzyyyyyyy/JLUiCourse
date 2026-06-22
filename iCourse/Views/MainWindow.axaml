@@ -1,41 +1,140 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:views="clr-namespace:iCourse.Views"
-        xmlns:behaviors="clr-namespace:iCourse.Behaviors"
         x:Class="iCourse.Views.MainWindow"
         Title="iCourse"
-        Width="680"
-        Height="420"
-        MinWidth="620"
-        MinHeight="380"
+        Width="980"
+        Height="560"
+        MinWidth="820"
+        MinHeight="480"
         WindowStartupLocation="CenterScreen"
         Background="#1F1F1F">
-  <Grid ColumnDefinitions="220,*" RowDefinitions="*,Auto" Margin="16">
-    <views:LoginControl Grid.RowSpan="2" />
+  <Window.Styles>
+    <Style Selector="Border.status-badge">
+      <Setter Property="CornerRadius" Value="6" />
+      <Setter Property="Padding" Value="9,4" />
+      <Setter Property="MinWidth" Value="64" />
+      <Setter Property="HorizontalAlignment" Value="Left" />
+      <Setter Property="Background" Value="#525967" />
+    </Style>
+    <Style Selector="Border.status-badge.waiting">
+      <Setter Property="Background" Value="#525967" />
+    </Style>
+    <Style Selector="Border.status-badge.racing">
+      <Setter Property="Background" Value="#1769AA" />
+    </Style>
+    <Style Selector="Border.status-badge.backoff">
+      <Setter Property="Background" Value="#9A6700" />
+    </Style>
+    <Style Selector="Border.status-badge.success">
+      <Setter Property="Background" Value="#237A45" />
+    </Style>
+    <Style Selector="Border.status-badge.failure">
+      <Setter Property="Background" Value="#A13A3A" />
+    </Style>
+  </Window.Styles>
 
-    <Border Grid.Column="1"
-            Background="#2E2E2E"
-            Padding="10"
-            Margin="16,0,0,12">
-      <ScrollViewer behaviors:AutoScrollToEndBehavior.ItemsSource="{Binding LogMessages}">
-        <ItemsControl ItemsSource="{Binding LogMessages}">
-          <ItemsControl.ItemTemplate>
-            <DataTemplate>
-              <TextBlock Text="{Binding}"
-                         Foreground="White"
-                         FontSize="14"
-                         TextWrapping="Wrap"
-                         Margin="0,0,0,6" />
-            </DataTemplate>
-          </ItemsControl.ItemTemplate>
-        </ItemsControl>
-      </ScrollViewer>
-    </Border>
+  <Grid ColumnDefinitions="220,*" Margin="18">
+    <views:LoginControl />
 
-    <ProgressBar Grid.Column="1"
-                 Grid.Row="1"
-                 Margin="16,0,0,0"
-                 IsVisible="{Binding IsProgressVisible}"
-                 Value="{Binding ProgressValue}" />
+    <Grid Grid.Column="1"
+          RowDefinitions="Auto,Auto,*,Auto"
+          Margin="20,0,0,0">
+      <Grid Grid.Row="0"
+            ColumnDefinitions="*,Auto,Auto,Auto,Auto"
+            ColumnSpacing="14"
+            Margin="0,0,0,12">
+        <TextBlock Text="选课状态"
+                   Foreground="#F5F7FA"
+                   FontSize="22"
+                   FontWeight="SemiBold"
+                   VerticalAlignment="Center" />
+
+        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="5" VerticalAlignment="Center">
+          <TextBlock Text="总计" Foreground="#B8C0CC" />
+          <TextBlock Text="{Binding TotalCount}" Foreground="#F5F7FA" FontWeight="SemiBold" />
+        </StackPanel>
+        <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="5" VerticalAlignment="Center">
+          <TextBlock Text="进行中" Foreground="#79BFFF" />
+          <TextBlock Text="{Binding RunningCount}" Foreground="#F5F7FA" FontWeight="SemiBold" />
+        </StackPanel>
+        <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="5" VerticalAlignment="Center">
+          <TextBlock Text="成功" Foreground="#71D39A" />
+          <TextBlock Text="{Binding SucceededCount}" Foreground="#F5F7FA" FontWeight="SemiBold" />
+        </StackPanel>
+        <StackPanel Grid.Column="4" Orientation="Horizontal" Spacing="5" VerticalAlignment="Center">
+          <TextBlock Text="失败" Foreground="#FF9696" />
+          <TextBlock Text="{Binding FailedCount}" Foreground="#F5F7FA" FontWeight="SemiBold" />
+        </StackPanel>
+      </Grid>
+
+      <Border Grid.Row="1"
+              IsVisible="{Binding IsBannerVisible}"
+              Background="#713939"
+              BorderBrush="#E47D7D"
+              BorderThickness="1"
+              CornerRadius="8"
+              Padding="12,9"
+              Margin="0,0,0,12">
+        <TextBlock Text="{Binding BannerText}"
+                   Foreground="#FFF4F4"
+                   FontWeight="SemiBold"
+                   TextWrapping="Wrap" />
+      </Border>
+
+      <DataGrid Grid.Row="2"
+                ItemsSource="{Binding CourseStatuses}"
+                AutoGenerateColumns="False"
+                IsReadOnly="True"
+                CanUserResizeColumns="True"
+                CanUserReorderColumns="False"
+                CanUserSortColumns="False"
+                GridLinesVisibility="Horizontal"
+                BorderBrush="#454A53"
+                BorderThickness="1"
+                Background="#282B30"
+                RowBackground="#282B30"
+                HorizontalGridLinesBrush="#454A53">
+        <DataGrid.Columns>
+          <DataGridTextColumn Header="课程"
+                              Binding="{Binding CourseName}"
+                              Width="2*" />
+          <DataGridTemplateColumn Header="状态" Width="110">
+            <DataGridTemplateColumn.CellTemplate>
+              <DataTemplate>
+                <Border Classes="status-badge"
+                        Classes.waiting="{Binding IsWaiting}"
+                        Classes.racing="{Binding IsRacing}"
+                        Classes.backoff="{Binding IsBackingOff}"
+                        Classes.success="{Binding IsSucceeded}"
+                        Classes.failure="{Binding IsFailed}">
+                  <TextBlock Text="{Binding StateText}"
+                             Foreground="#FFFFFF"
+                             FontWeight="SemiBold"
+                             HorizontalAlignment="Center" />
+                </Border>
+              </DataTemplate>
+            </DataGridTemplateColumn.CellTemplate>
+          </DataGridTemplateColumn>
+          <DataGridTextColumn Header="尝试次数"
+                              Binding="{Binding AttemptCount}"
+                              Width="90" />
+          <DataGridTextColumn Header="耗时"
+                              Binding="{Binding ElapsedText}"
+                              Width="90" />
+          <DataGridTextColumn Header="最新结果"
+                              Binding="{Binding LatestResult}"
+                              Width="3*" />
+        </DataGrid.Columns>
+      </DataGrid>
+
+      <ProgressBar Grid.Row="3"
+                   Margin="0,12,0,0"
+                   Height="5"
+                   IsVisible="{Binding IsProgressVisible}"
+                   Minimum="0"
+                   Maximum="100"
+                   Value="{Binding ProgressValue}" />
+    </Grid>
   </Grid>
 </Window>
