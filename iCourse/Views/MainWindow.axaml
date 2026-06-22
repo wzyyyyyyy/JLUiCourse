@@ -5,7 +5,7 @@
         Title="iCourse"
         Width="980"
         Height="560"
-        MinWidth="820"
+        MinWidth="900"
         MinHeight="480"
         WindowStartupLocation="CenterScreen"
         Background="#1F1F1F">
@@ -31,6 +31,23 @@
     </Style>
     <Style Selector="Border.status-badge.failure">
       <Setter Property="Background" Value="#A13A3A" />
+    </Style>
+    <Style Selector="Border.selection-banner">
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="8" />
+      <Setter Property="Padding" Value="12,9" />
+    </Style>
+    <Style Selector="Border.selection-banner.info">
+      <Setter Property="Background" Value="#173A54" />
+      <Setter Property="BorderBrush" Value="#4C9ED9" />
+    </Style>
+    <Style Selector="Border.selection-banner.warning">
+      <Setter Property="Background" Value="#5A4315" />
+      <Setter Property="BorderBrush" Value="#D6A443" />
+    </Style>
+    <Style Selector="Border.selection-banner.error">
+      <Setter Property="Background" Value="#713939" />
+      <Setter Property="BorderBrush" Value="#E47D7D" />
     </Style>
   </Window.Styles>
 
@@ -69,12 +86,11 @@
       </Grid>
 
       <Border Grid.Row="1"
+              Classes="selection-banner"
+              Classes.info="{Binding IsBannerInfo}"
+              Classes.warning="{Binding IsBannerWarning}"
+              Classes.error="{Binding IsBannerError}"
               IsVisible="{Binding IsBannerVisible}"
-              Background="#713939"
-              BorderBrush="#E47D7D"
-              BorderThickness="1"
-              CornerRadius="8"
-              Padding="12,9"
               Margin="0,0,0,12">
         <TextBlock Text="{Binding BannerText}"
                    Foreground="#FFF4F4"
@@ -96,10 +112,18 @@
                 RowBackground="#282B30"
                 HorizontalGridLinesBrush="#454A53">
         <DataGrid.Columns>
-          <DataGridTextColumn Header="课程"
-                              Binding="{Binding CourseName}"
-                              Width="2*" />
-          <DataGridTemplateColumn Header="状态" Width="110">
+          <DataGridTemplateColumn Header="课程" Width="2*">
+            <DataGridTemplateColumn.CellTemplate>
+              <DataTemplate>
+                <TextBlock Text="{Binding CourseName}"
+                           TextWrapping="Wrap"
+                           MaxLines="2"
+                           ToolTip.Tip="{Binding CourseName}"
+                           VerticalAlignment="Center" />
+              </DataTemplate>
+            </DataGridTemplateColumn.CellTemplate>
+          </DataGridTemplateColumn>
+          <DataGridTemplateColumn Header="状态" Width="96">
             <DataGridTemplateColumn.CellTemplate>
               <DataTemplate>
                 <Border Classes="status-badge"
@@ -118,13 +142,21 @@
           </DataGridTemplateColumn>
           <DataGridTextColumn Header="尝试次数"
                               Binding="{Binding AttemptCount}"
-                              Width="90" />
+                              Width="76" />
           <DataGridTextColumn Header="耗时"
                               Binding="{Binding ElapsedText}"
-                              Width="90" />
-          <DataGridTextColumn Header="最新结果"
-                              Binding="{Binding LatestResult}"
-                              Width="3*" />
+                              Width="76" />
+          <DataGridTemplateColumn Header="最新结果" Width="3*">
+            <DataGridTemplateColumn.CellTemplate>
+              <DataTemplate>
+                <TextBlock Text="{Binding LatestResult}"
+                           TextWrapping="Wrap"
+                           MaxLines="2"
+                           ToolTip.Tip="{Binding LatestResult}"
+                           VerticalAlignment="Center" />
+              </DataTemplate>
+            </DataGridTemplateColumn.CellTemplate>
+          </DataGridTemplateColumn>
         </DataGrid.Columns>
       </DataGrid>
 

@@ -209,6 +209,68 @@ public sealed class MainWindowViewModelTests
         Assert.False(viewModel.IsBannerVisible);
     }
 
+    [Theory]
+    [InlineData(SystemBannerSeverity.Info, true, false, false)]
+    [InlineData(SystemBannerSeverity.Warning, false, true, false)]
+    [InlineData(SystemBannerSeverity.Error, false, false, true)]
+    public void BannerSeverity_ExposesExactlyOneSemanticFlag(
+        SystemBannerSeverity severity,
+        bool expectedInfo,
+        bool expectedWarning,
+        bool expectedError)
+    {
+        var (viewModel, messenger, _) = CreateViewModel();
+
+        messenger.Send(new SystemBannerMessage("状态说明", severity));
+
+        Assert.Equal(expectedInfo, viewModel.IsBannerInfo);
+        Assert.Equal(expectedWarning, viewModel.IsBannerWarning);
+        Assert.Equal(expectedError, viewModel.IsBannerError);
+    }
+
+    [Fact]
+    public void BannerSeverityChanges_NotifyAllSemanticFlags()
+    {
+        var (viewModel, messenger, _) = CreateViewModel();
+        var changedProperties = new List<string?>();
+        viewModel.PropertyChanged += (_, args) => changedProperties.Add(args.PropertyName);
+
+        messenger.Send(new SystemBannerMessage("网络拥堵", SystemBannerSeverity.Warning));
+
+        Assert.Contains("IsBannerInfo", changedProperties);
+        Assert.Contains("IsBannerWarning", changedProperties);
+        Assert.Contains("IsBannerError", changedProperties);
+    }
+
+    [Fact]
+    public async Task StartWhileFavoritePrefetchIsPending_ShowsInfoAndRejectsDuplicate()
+    {
+        var api = new FakeApi();
+        api.HoldStartOpen();
+        var (viewModel, messenger, _) = CreateViewModel(api: api);
+        messenger.Send(new LoginSuccessMessage());
+        messenger.Send(new SystemBannerMessage("旧错误", SystemBannerSeverity.Error));
+
+        var firstStart = viewModel.StartSelectCourseCommand.ExecuteAsync(null);
+
+        try
+        {
+            Assert.True(viewModel.IsSelectionRunning);
+            Assert.True(viewModel.IsBannerVisible);
+            Assert.Equal("正在读取收藏课程…", viewModel.BannerText);
+            Assert.Equal(SystemBannerSeverity.Info, viewModel.BannerSeverity);
+            Assert.True(viewModel.IsBannerInfo);
+
+            await viewModel.StartSelectCourseCommand.ExecuteAsync(null);
+            Assert.Equal(1, api.StartCallCount);
+        }
+        finally
+        {
+            api.CompleteStart();
+            await firstStart;
+        }
+    }
+
     [Fact]
     public async Task StartPreventsDuplicatesStopDelegatesAndCanStartTracksLoginAndRun()
     {

@@ -69,6 +69,9 @@ public partial class MainWindowViewModel : ObservableObject
     private bool isBannerVisible;
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsBannerInfo))]
+    [NotifyPropertyChangedFor(nameof(IsBannerWarning))]
+    [NotifyPropertyChangedFor(nameof(IsBannerError))]
     private SystemBannerSeverity bannerSeverity;
 
     public MainWindowViewModel(
@@ -104,6 +107,12 @@ public partial class MainWindowViewModel : ObservableObject
 
     public bool CanStartSelection => AreAfterLoginButtonsVisible && !IsSelectionRunning;
 
+    public bool IsBannerInfo => BannerSeverity == SystemBannerSeverity.Info;
+
+    public bool IsBannerWarning => BannerSeverity == SystemBannerSeverity.Warning;
+
+    public bool IsBannerError => BannerSeverity == SystemBannerSeverity.Error;
+
     [RelayCommand]
     private async Task Login()
     {
@@ -124,7 +133,11 @@ public partial class MainWindowViewModel : ObservableObject
             return;
         }
 
-        dispatcher.Post(() => IsSelectionRunning = true);
+        dispatcher.Post(() =>
+        {
+            IsSelectionRunning = true;
+            ShowBanner("正在读取收藏课程…", SystemBannerSeverity.Info);
+        });
 
         try
         {
