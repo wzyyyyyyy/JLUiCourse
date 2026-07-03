@@ -55,3 +55,12 @@ macOS 说明：当前没有 Apple Developer ID 证书，因此生成的是 unsig
 ## 免责声明
 
 本软件完全免费，仅供学习和研究使用。请勿将其用于任何违反学校或相关法律法规的行为。用户需自行承担使用本软件所产生的后果，开发者不对因使用本软件造成的任何直接或间接损失负责。本软件未经吉林大学官方授权，与吉林大学无任何直接或间接关联。
+
+## 星星蹭蹭涨✨
+<a href="https://www.star-history.com/?repos=wzyyyyyyy%2FJLUiCourse&type=date&legend=top-left">
+ <picture>
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=wzyyyyyyy/JLUiCourse&type=date&theme=dark&legend=top-left" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=wzyyyyyyy/JLUiCourse&type=date&legend=top-left" />
+   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=wzyyyyyyy/JLUiCourse&type=date&legend=top-left" />
+ </picture>
+</a>
