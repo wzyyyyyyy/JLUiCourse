@@ -89,7 +89,7 @@ public partial class MainWindowViewModel : ObservableObject
         AutoLogin = credentials.AutoLogin;
         AutoSelectBatch = credentials.AutoSelectBatch;
 
-        messenger.Register<LoginSuccessMessage>(this, LoginSuccess);
+        messenger.Register<SetBatchFinishedMessage>(this, BatchSelectionFinished);
         messenger.Register<CourseSelectionRunStartedMessage>(this, CourseSelectionRunStarted);
         messenger.Register<CourseSelectionStatusChangedMessage>(this, CourseSelectionStatusChanged);
         messenger.Register<CourseSelectionRunCompletedMessage>(this, CourseSelectionRunCompleted);
@@ -165,7 +165,7 @@ public partial class MainWindowViewModel : ObservableObject
         _ = dialogs.ShowQueryCoursesAsync();
     }
 
-    private void LoginSuccess(object recipient, LoginSuccessMessage message)
+    private void BatchSelectionFinished(object recipient, SetBatchFinishedMessage message)
     {
         dispatcher.Post(() =>
         {

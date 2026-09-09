@@ -1,7 +1,6 @@
 using Avalonia.Controls;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using iCourse.Helpers;
 using iCourse.Models;
 using iCourse.Services;
 using System.Collections.Generic;
@@ -10,8 +9,6 @@ using System.Threading.Tasks;
 namespace iCourse.ViewModels;
 
 public partial class SelectBatchViewModel(
-    UserCredentials credentials,
-    JLUiCourseApi api,
     IDialogService dialogs,
     IReadOnlyList<BatchInfo> batchList) : ObservableObject
 {
@@ -30,8 +27,6 @@ public partial class SelectBatchViewModel(
             return;
         }
 
-        credentials.LastBatchId = SelectedBatch.batchId;
-        _ = api.SetBatchIdAsync(SelectedBatch);
         window.Close(SelectedBatch);
     }
 }
