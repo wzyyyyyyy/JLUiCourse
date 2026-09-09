@@ -23,6 +23,42 @@ public sealed class MainWindowViewModelTests
     }
 
     [Fact]
+    public void LoginWithoutConfirmedBatch_KeepsLoginAvailableAndSelectionDisabled()
+    {
+        var (viewModel, messenger, _) = CreateViewModel();
+
+        messenger.Send(new LoginSuccessMessage());
+
+        Assert.True(viewModel.CanLogin);
+        Assert.False(viewModel.AreAfterLoginButtonsVisible);
+        Assert.False(viewModel.CanStartSelection);
+        Assert.False(viewModel.StartSelectCourseCommand.CanExecute(null));
+
+        messenger.Send(new SystemBannerMessage("选课批次设置失败", SystemBannerSeverity.Error));
+
+        Assert.True(viewModel.CanLogin);
+        Assert.False(viewModel.CanStartSelection);
+    }
+
+    [Fact]
+    public void BatchConfirmed_EnablesSelectionOnUiThread()
+    {
+        var dispatcher = new RecordingDispatcher();
+        var (viewModel, messenger, _) = CreateViewModel(dispatcher: dispatcher);
+
+        messenger.Send(new SetBatchFinishedMessage(new BatchInfo { batchId = "batch" }));
+
+        Assert.Equal(1, dispatcher.PostCount);
+        Assert.True(viewModel.CanLogin);
+        Assert.False(viewModel.AreAfterLoginButtonsVisible);
+        dispatcher.Drain();
+        Assert.False(viewModel.CanLogin);
+        Assert.True(viewModel.AreAfterLoginButtonsVisible);
+        Assert.True(viewModel.CanStartSelection);
+        Assert.True(viewModel.StartSelectCourseCommand.CanExecute(null));
+    }
+
+    [Fact]
     public void EditableCredentials_WriteThroughToInjectedCredentials()
     {
         var root = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
@@ -248,7 +284,7 @@ public sealed class MainWindowViewModelTests
         var api = new FakeApi();
         api.HoldStartOpen();
         var (viewModel, messenger, _) = CreateViewModel(api: api);
-        messenger.Send(new LoginSuccessMessage());
+        messenger.Send(new SetBatchFinishedMessage(new BatchInfo { batchId = "batch" }));
         messenger.Send(new SystemBannerMessage("旧错误", SystemBannerSeverity.Error));
 
         var firstStart = viewModel.StartSelectCourseCommand.ExecuteAsync(null);
@@ -272,13 +308,13 @@ public sealed class MainWindowViewModelTests
     }
 
     [Fact]
-    public async Task StartPreventsDuplicatesStopDelegatesAndCanStartTracksLoginAndRun()
+    public async Task StartPreventsDuplicatesStopDelegatesAndCanStartTracksBatchAndRun()
     {
         var api = new FakeApi();
         api.HoldStartOpen();
         var (viewModel, messenger, _) = CreateViewModel(api: api);
 
-        messenger.Send(new LoginSuccessMessage());
+        messenger.Send(new SetBatchFinishedMessage(new BatchInfo { batchId = "batch" }));
         Assert.False(viewModel.CanLogin);
         Assert.True(viewModel.AreAfterLoginButtonsVisible);
         Assert.True(viewModel.CanStartSelection);

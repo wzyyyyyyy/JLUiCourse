@@ -101,7 +101,6 @@ public class JLUiCourseApi(
 
     public async Task SetBatchIdAsync(BatchInfo batch)
     {
-        this.batch = batch;
         client.SetOrigin("https://icourses.jlu.edu.cn");
         client.SetReferer("https://icourses.jlu.edu.cn/xsxk/profile/index.html");
         client.AddHeader("Authorization", token);
@@ -112,9 +111,10 @@ public class JLUiCourseApi(
         var json = JObject.Parse(response);
         if (json["code"]?.ToObject<int>() == 200)
         {
+            this.batch = batch;
+            credentials.LastBatchId = batch.batchId;
             logger.WriteLine("选课批次设置成功");
             logger.WriteLine("已选批次:" + batch.batchName);
-            messenger.Send(new SetBatchFinishedMessage(batch));
         }
         else
         {
@@ -123,10 +123,12 @@ public class JLUiCourseApi(
             messenger.Send(new SystemBannerMessage(
                 $"选课批次设置失败：{message}",
                 SystemBannerSeverity.Error));
+            return;
         }
 
         client.SetReferer("https://icourses.jlu.edu.cn/xsxk/profile/index.html");
         await client.HttpGetAsync("xsxk/elective/grablessons?batchId=" + batch.batchId);
+        messenger.Send(new SetBatchFinishedMessage(batch));
         KeepOnline();
     }
 

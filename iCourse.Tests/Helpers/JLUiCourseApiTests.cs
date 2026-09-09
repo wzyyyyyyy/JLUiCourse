@@ -13,6 +13,24 @@ namespace iCourse.Tests.Helpers;
 public sealed class JLUiCourseApiTests
 {
     [Fact]
+    public async Task SetBatchIdAsync_BusinessFailurePreservesBatchAndDoesNotInitializeSelection()
+    {
+        var handler = new StaticResponseHandler("{\"code\":500,\"msg\":\"该批次尚未开放\"}");
+        using var fixture = CreateFixture(handler);
+        var previousBatch = typeof(JLUiCourseApi).GetField("batch", BindingFlags.Instance | BindingFlags.NonPublic)!
+            .GetValue(fixture.Api);
+
+        await fixture.Api.SetBatchIdAsync(new BatchInfo { batchId = "rejected-batch" });
+
+        var banner = Assert.Single(fixture.Banners);
+        Assert.Equal("选课批次设置失败：该批次尚未开放", banner.Text);
+        Assert.Equal(SystemBannerSeverity.Error, banner.Severity);
+        Assert.Same(previousBatch, typeof(JLUiCourseApi).GetField("batch", BindingFlags.Instance | BindingFlags.NonPublic)!
+            .GetValue(fixture.Api));
+        Assert.Equal("/xsxk/elective/user", Assert.Single(handler.Paths));
+    }
+
+    [Fact]
     public async Task StartSelectClassAsync_StopCancelsFavoritePrefetchAndCompletesOnce()
     {
         var handler = new ReleasableFavoriteHandler();
@@ -96,6 +114,7 @@ public sealed class JLUiCourseApiTests
             messenger);
         var http = new Http(TimeSpan.FromSeconds(5), logger, handler);
         SetPrivateField(api, "client", http);
+        SetPrivateField(api, "token", "test-token");
         SetPrivateField(api, "batch", new BatchInfo { batchId = "batch" });
         return new ApiFixture(api, http, logger, messenger);
     }
