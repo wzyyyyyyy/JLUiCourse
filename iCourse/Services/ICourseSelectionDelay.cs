@@ -1,3 +1,5 @@
+using iCourse.Models;
+
 namespace iCourse.Services;
 
 public interface ICourseSelectionDelay
@@ -13,11 +15,26 @@ public interface ICourseSelectionDelay
 
 public sealed class AggressiveCourseSelectionDelay : ICourseSelectionDelay
 {
+    private const int RushMinDelayMs = 40;
+    private const int RushMaxDelayMs = 100;
+    private const int ScavengeMinDelayMs = 200;
+    private const int ScavengeMaxDelayMs = 500;
+
     private static readonly TimeSpan MaximumTaskDelay =
         TimeSpan.FromMilliseconds(4_294_967_294);
 
+    private readonly CourseSelectionModeState mode;
+
+    public AggressiveCourseSelectionDelay(CourseSelectionModeState? mode = null)
+    {
+        this.mode = mode ?? new CourseSelectionModeState();
+    }
+
     public TimeSpan GetTransientDelay() =>
-        TimeSpan.FromMilliseconds(Random.Shared.Next(40, 101));
+        TimeSpan.FromMilliseconds(
+            mode.IsScavenge
+                ? Random.Shared.Next(ScavengeMinDelayMs, ScavengeMaxDelayMs + 1)
+                : Random.Shared.Next(RushMinDelayMs, RushMaxDelayMs + 1));
 
     public TimeSpan GetNetworkDelay(int failureCount) =>
         ExponentialDelay(

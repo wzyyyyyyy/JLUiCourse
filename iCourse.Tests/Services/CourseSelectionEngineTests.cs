@@ -560,6 +560,39 @@ public sealed class CourseSelectionEngineTests
     }
 
     [Fact]
+    public void AggressiveDelay_ScavengeModeUsesGentleRetryBounds()
+    {
+        var delay = new AggressiveCourseSelectionDelay(
+            new CourseSelectionModeState { Mode = CourseSelectionMode.Scavenge });
+
+        Assert.All(
+            Enumerable.Range(0, 100).Select(_ => delay.GetTransientDelay()),
+            value => Assert.InRange(
+                value,
+                TimeSpan.FromMilliseconds(200),
+                TimeSpan.FromMilliseconds(500)));
+    }
+
+    [Fact]
+    public void AggressiveDelay_ModeSwitchAppliesToNextTransientDelay()
+    {
+        var mode = new CourseSelectionModeState();
+        var delay = new AggressiveCourseSelectionDelay(mode);
+
+        Assert.InRange(
+            delay.GetTransientDelay(),
+            TimeSpan.FromMilliseconds(40),
+            TimeSpan.FromMilliseconds(100));
+
+        mode.Mode = CourseSelectionMode.Scavenge;
+
+        Assert.InRange(
+            delay.GetTransientDelay(),
+            TimeSpan.FromMilliseconds(200),
+            TimeSpan.FromMilliseconds(500));
+    }
+
+    [Fact]
     public void AggressiveDelay_PrefersRetryAfter()
     {
         var delay = new AggressiveCourseSelectionDelay();

@@ -104,6 +104,19 @@ public sealed class MainWindowLayoutTests
     }
 
     [Fact]
+    public void LoginControl_ExposesScavengeModeToggle()
+    {
+        var document = LoadView("LoginControl.axaml");
+        var toggle = Assert.Single(
+            document.Descendants(),
+            element => element.Name.LocalName == "CheckBox" &&
+                AttributeOrDefault(element, "Content") == "捡漏模式");
+
+        Assert.Equal("{Binding IsScavengeMode, Mode=TwoWay}", Attribute(toggle, "IsChecked"));
+        Assert.False(string.IsNullOrWhiteSpace(AttributeOrDefault(toggle, "ToolTip.Tip")));
+    }
+
+    [Fact]
     public void MainWindow_HasNoUiLogOrAutoScrollBehaviorBindings()
     {
         var document = LoadView("MainWindow.axaml");

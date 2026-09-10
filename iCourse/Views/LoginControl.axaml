@@ -14,6 +14,10 @@
     <CheckBox Content="自动登录"
               Foreground="White"
               IsChecked="{Binding AutoLogin, Mode=TwoWay}" />
+    <CheckBox Content="捡漏模式"
+              Foreground="White"
+              IsChecked="{Binding IsScavengeMode, Mode=TwoWay}"
+              ToolTip.Tip="课容量已满时不再放弃，持续等待他人退课，并把重试间隔放宽到 200-500 毫秒。适合退补选期间长时间挂机。" />
 
     <Button Content="登录"
             Height="32"

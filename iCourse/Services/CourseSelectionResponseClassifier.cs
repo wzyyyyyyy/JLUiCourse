@@ -50,6 +50,13 @@ public sealed class CourseSelectionResponseClassifier
         "处理中"
     ];
 
+    private readonly CourseSelectionModeState mode;
+
+    public CourseSelectionResponseClassifier(CourseSelectionModeState? mode = null)
+    {
+        this.mode = mode ?? new CourseSelectionModeState();
+    }
+
     public CourseSelectionClassification Classify(CourseSelectionAttempt attempt)
     {
         var isJson = TryParseJson(attempt.Body, out var json);
@@ -59,7 +66,9 @@ public sealed class CourseSelectionResponseClassifier
         if (capacitySource.Contains(CapacityFullFragment, StringComparison.Ordinal))
         {
             return new(
-                CourseSelectionDecision.TerminalFailure,
+                mode.IsScavenge
+                    ? CourseSelectionDecision.Retry
+                    : CourseSelectionDecision.TerminalFailure,
                 CapacityFullFragment);
         }
 

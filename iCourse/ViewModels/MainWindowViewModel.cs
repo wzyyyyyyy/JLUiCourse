@@ -16,6 +16,7 @@ public partial class MainWindowViewModel : ObservableObject
     private readonly UserCredentials credentials;
     private readonly IDialogService dialogs;
     private readonly IUiDispatcher dispatcher;
+    private readonly CourseSelectionModeState selectionMode;
     private readonly Dictionary<string, CourseSelectionStatusItem> statusByCourseId = [];
     private int startInProgress;
 
@@ -39,6 +40,9 @@ public partial class MainWindowViewModel : ObservableObject
 
     [ObservableProperty]
     private bool autoSelectBatch;
+
+    [ObservableProperty]
+    private bool isScavengeMode;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(CanStartSelection))]
@@ -79,12 +83,16 @@ public partial class MainWindowViewModel : ObservableObject
         UserCredentials credentials,
         IDialogService dialogs,
         IUiDispatcher dispatcher,
-        IMessenger messenger)
+        IMessenger messenger,
+        CourseSelectionModeState? selectionMode = null)
     {
         this.api = api;
         this.credentials = credentials;
         this.dialogs = dialogs;
         this.dispatcher = dispatcher;
+        this.selectionMode = selectionMode ?? new CourseSelectionModeState();
+
+        IsScavengeMode = this.selectionMode.IsScavenge;
 
         AutoLogin = credentials.AutoLogin;
         AutoSelectBatch = credentials.AutoSelectBatch;
@@ -112,6 +120,11 @@ public partial class MainWindowViewModel : ObservableObject
     public bool IsBannerWarning => BannerSeverity == SystemBannerSeverity.Warning;
 
     public bool IsBannerError => BannerSeverity == SystemBannerSeverity.Error;
+
+    partial void OnIsScavengeModeChanged(bool value) =>
+        selectionMode.Mode = value
+            ? CourseSelectionMode.Scavenge
+            : CourseSelectionMode.Rush;
 
     [RelayCommand]
     private async Task Login()
