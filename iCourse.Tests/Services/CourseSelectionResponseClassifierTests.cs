@@ -8,6 +8,9 @@ public sealed class CourseSelectionResponseClassifierTests
 {
     private readonly CourseSelectionResponseClassifier classifier = new();
 
+    private readonly CourseSelectionResponseClassifier scavengingClassifier =
+        new(new CourseSelectionModeState { Mode = CourseSelectionMode.Scavenge });
+
     [Fact]
     public void Classify_Code200_ReturnsSuccess()
     {
@@ -50,6 +53,42 @@ public sealed class CourseSelectionResponseClassifierTests
         var result = classifier.Classify(Attempt(JsonMessage("课容量已满，请稍后再试")));
 
         Assert.Equal(CourseSelectionDecision.TerminalFailure, result.Decision);
+    }
+
+    [Fact]
+    public void Classify_ScavengeMode_CapacityFullReturnsRetry()
+    {
+        var result = scavengingClassifier.Classify(Attempt(JsonMessage("课容量已满")));
+
+        Assert.Equal(CourseSelectionDecision.Retry, result.Decision);
+        Assert.Equal("课容量已满", result.Reason);
+        Assert.False(result.IsUnknown);
+    }
+
+    [Fact]
+    public void Classify_ScavengeMode_KeepsOtherPermanentFailuresTerminal()
+    {
+        var result = scavengingClassifier.Classify(Attempt(JsonMessage("时间冲突")));
+
+        Assert.Equal(CourseSelectionDecision.TerminalFailure, result.Decision);
+    }
+
+    [Fact]
+    public void Classify_ModeSwitchedAfterConstruction_AppliesToNextClassification()
+    {
+        var mode = new CourseSelectionModeState();
+        var switchable = new CourseSelectionResponseClassifier(mode);
+        var attempt = Attempt(JsonMessage("课容量已满"));
+
+        Assert.Equal(
+            CourseSelectionDecision.TerminalFailure,
+            switchable.Classify(attempt).Decision);
+
+        mode.Mode = CourseSelectionMode.Scavenge;
+
+        Assert.Equal(
+            CourseSelectionDecision.Retry,
+            switchable.Classify(attempt).Decision);
     }
 
     [Fact]

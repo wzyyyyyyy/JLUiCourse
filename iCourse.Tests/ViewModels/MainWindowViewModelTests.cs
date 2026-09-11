@@ -23,6 +23,30 @@ public sealed class MainWindowViewModelTests
     }
 
     [Fact]
+    public void ScavengeModeToggle_WritesThroughToSharedSelectionMode()
+    {
+        var root = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        var mode = new CourseSelectionModeState();
+        var viewModel = new MainWindowViewModel(
+            new FakeApi(),
+            new UserCredentials(new FakeAppPaths(root)),
+            new FakeDialogService(),
+            new ImmediateUiDispatcher(),
+            new WeakReferenceMessenger(),
+            mode);
+
+        Assert.False(viewModel.IsScavengeMode);
+        Assert.Equal(CourseSelectionMode.Rush, mode.Mode);
+
+        viewModel.IsScavengeMode = true;
+        Assert.Equal(CourseSelectionMode.Scavenge, mode.Mode);
+
+        viewModel.IsScavengeMode = false;
+        Assert.Equal(CourseSelectionMode.Rush, mode.Mode);
+    }
+
+    [Fact]
     public void LoginWithoutConfirmedBatch_KeepsLoginAvailableAndSelectionDisabled()
     {
         var (viewModel, messenger, _) = CreateViewModel();

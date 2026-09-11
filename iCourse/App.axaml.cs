@@ -56,6 +56,7 @@ public partial class App : Application
         services.AddSingleton<Logger>();
         services.AddSingleton<UserCredentials>();
         services.AddSingleton(new CourseSelectionOptions());
+        services.AddSingleton<CourseSelectionModeState>();
         services.AddSingleton<CourseSelectionResponseClassifier>();
         services.AddSingleton<ICourseSelectionDelay, AggressiveCourseSelectionDelay>();
         services.AddSingleton<CourseSelectionEngine>();
